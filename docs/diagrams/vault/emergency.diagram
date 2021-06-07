@@ -1,0 +1,63 @@
+title Vault: Emergency Shutdown
+
+actor User
+
+alt Governance activate Emergency Shutdown
+Governance Multisig SC->Vault SC: setEmergencyShutdown(true)
+note over Vault SC: the Vault goes into Emergency Shutdown
+Vault SC-->Governance Multisig SC: EmergencyShutdown(true)
+else Guardian activates Emergency Shutdown
+actor Guardian
+Guardian->Vault SC: setEmergencyShutdown(true)
+note over Vault SC: the Vault goes into Emergency Shutdown
+Vault SC-->Guardian: EmergencyShutdown(true)
+end
+
+note over Vault SC:
+During Emergency Shutdown:
+1. No Users may deposit into the Vault (but may withdraw as usual.)
+2. Governance may not add new Strategies.
+3. Each Strategy must pay back their debt
+   as quickly as reasonable to minimally affect their position.
+4. Only Governance may undo Emergency Shutdown.
+end note
+
+User->Vault SC: withdraw(maxShares, recipient, maxLoss)
+
+note over Vault SC:
+Strategiest, Governance, Guardian and Vault Management
+are authorized to enable emergency exit on Strategy
+end note
+
+actor Strategiest
+
+alt Governance enable emergency exit
+Governance Multisig SC->Strategy SC: setEmergencyExit()
+Strategy SC->Vault SC: revokeStrategy()
+Strategy SC-->Governance Multisig SC: EmergencyExitEnabled
+else Guardian enables emergency exit
+Guardian->Strategy SC: setEmergencyExit()
+Strategy SC->Vault SC: revokeStrategy()
+Strategy SC-->Guardian: EmergencyExitEnabled
+else Strategiest enables emergency exit
+Strategiest->Strategy SC: setEmergencyExit()
+Strategy SC->Vault SC: revokeStrategy()
+Strategy SC-->Strategiest: EmergencyExitEnabled
+end
+
+actor Keeper Bot
+
+opt Emergency shutdown active
+note over Keeper Bot, Strategy SC: 
+If the Strategy is in emergency shutdown, 
+harvest() will exit the Strategy's position.
+end note
+Keeper Bot->Strategy SC: harvest()
+Strategy SC->Strategy SC: liquidateAllPositions()
+end
+
+opt Governance deactivate Emergency Shutdown
+    Governance Multisig SC->Vault SC: setEmergencyShutdown(false)
+    note over Vault SC: the Vault goes back into Normal Operation
+    Vault SC-->Governance Multisig SC: EmergencyShutdown(false)
+end

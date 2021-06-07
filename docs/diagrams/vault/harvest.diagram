@@ -1,0 +1,55 @@
+title Vault: Harvest
+
+opt
+note over Strategy SC, Vault SC
+Provide an accurate expected return value Strategy
+would provide to the Vault the next time `report()` is called
+(since the last time it was called).
+end note
+Strategy SC->Vault SC: expectedReturn(strategy)
+end
+
+opt
+Strategy SC->Vault SC: report(gain, loss, debtPayment)
+Vault SC-->Strategy SC: StrategyReported (gain, loss, debt)
+end
+
+loop if minReportDelay from the last `harvest()` is passed and `maxReportDelay` is not reached
+actor KeeperBot
+note over KeeperBot, Strategy SC
+The difference between `harvest()` and `vault.report()' is
+that `harvest()` may be called simply because enough time has
+elapsed since the last report, and not because 
+any funds need to be movedor positions adjusted.
+end note
+
+note right of External Script (Keep.py):
+Provide a signal to the keeper
+that `harvest()` should be called.
+
+Returns true or false
+end note
+alt
+External Script (Keep.py)->Strategy SC: harvestTrigger(callCostInWei)
+Strategy SC-->KeeperBot: false
+else
+External Script (Keep.py)->Strategy SC: harvestTrigger(callCostInWei)
+Strategy SC-->KeeperBot: true
+KeeperBot->Strategy SC: harvest()
+Strategy SC->Strategy SC: prepareReturn(debtOutstanding)
+Strategy SC->Vault SC: report(gain, loss, debtPayment)
+Vault SC->Vault SC: assessFees(strategy, gain)
+note over Vault SC: 
+strategist_reward = strategist_fee * reward / total_fee
+end note
+Vault SC->Vault SC: transfer(strategy, strategist_reward)
+Vault SC-->Strategy SC: Transfer
+note over Vault SC:
+Governance earns any dust leftover from flooring math above
+end note
+Vault SC->Vault SC: transfer(rewards, balanceOf[self])
+Vault SC-->Rewards SC: Transfer
+Strategy SC->Strategy SC: adjustPosition(debtOutstanding)
+Strategy SC-->KeeperBot: Harvested (profit, loss, debtPayment, debtOutstanding)
+end
+end

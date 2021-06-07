@@ -1,0 +1,29 @@
+title Registry: Vault creation
+
+participant Governance Multisig SC
+participant Registry SC
+participant Vault SC
+participant Token SC
+actor Banksy
+
+alt If production vault
+    alt If vault doesn't exist
+        Governance Multisig SC->Registry SC: newVault(Token SC address, guardian, rewards, name, symbol, releaseDelta)
+        Registry SC->Registry SC: _newProxyVault(...)
+        Registry SC->Vault SC: initialize(...)
+    else If vault exists, then endorse it
+        Governance Multisig SC->Registry SC: endorseVault(vault, releaseDelta)
+    end
+    Registry SC->Registry SC: _registerVault(Token SC address, vault)
+else If experimental vault
+    Governance Multisig SC->Registry SC: newExperimentalVault(Token SC address, guardian, rewards, name, symbol, releaseDelta)
+    Registry SC->Registry SC: _newProxyVault(...)
+end
+
+opt Tag vault
+    alt
+        Governance Multisig SC->Registry SC: tagVault(vault, tag)
+    else
+        Banksy->Registry SC: tagVault(vault, tag)
+    end
+end

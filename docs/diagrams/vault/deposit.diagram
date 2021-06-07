@@ -1,0 +1,27 @@
+title Vault: Deposit
+
+actor User
+participant Registry SC
+participant Vault SC
+participant Token SC
+actor Recipient
+
+User->Registry SC: latestVault(Token SC address)
+
+User->Token SC: approve(Vault SC address, amount)
+
+note over Vault SC
+Deposit shares are issued relative
+to total actaul balance and the
+"in debt" balance provided to the strategies
+end note
+
+User->Vault SC: deposit(amount, Recipient address)
+
+alt if vault is not in "emergency shutdown" mode
+    note over Vault SC:
+    y[Token] representing shares is minted
+    end note
+    Vault SC->Vault SC: issueSharesForAmount(Recipient address, amount)
+    
+    Vault SC->Token SC: safeTransferFrom(User address, Vault SC address, amount)

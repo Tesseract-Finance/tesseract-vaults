@@ -1,0 +1,30 @@
+title Vault: Adding strategy
+
+participant Governance Multisig SC
+participant Vault SC
+participant Strategy SC
+
+alt Registering a new strategy
+    Governance Multisig SC->Vault SC: addStrategy(strategy, ...)
+    opt If Vault is in emergency shutdown
+    Governance Multisig SC->Vault SC: setEmergencyShutdown(false)
+    end
+    opt If Vault debt ratio is filled
+    Governance Multisig SC->Vault SC: updateStrategyDebtRatio()
+    end
+    opt If minDebtPerHarvest <= maxDebtPerHarvest
+    Governance Multisig SC->Vault SC: updateStrategyMaxDebtPerHarvest()
+    end
+    note left of Vault SC
+    If Vault maximum number of strategies not reached
+    end note
+    
+    Vault SC->Vault SC: StrategyAdded(Strategy SC address)
+    Vault SC->Vault SC: _organizeWithdrawalQueue()
+else Migrating an old one to a newer version
+    Governance Multisig SC->Vault SC: migrateStrategy(oldVersion, newVersion)
+    Vault SC->Vault SC: _revokeStrategy(oldVersion)
+    Vault SC->Strategy SC: migrate(newVersion)
+    
+opt Remove strategy from withdraw queue
+Governance Multisig SC->Vault SC: removeStrategyFromQueue()

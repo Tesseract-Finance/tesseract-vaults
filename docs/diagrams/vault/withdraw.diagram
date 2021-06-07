@@ -1,0 +1,34 @@
+title Vault: Withdraw
+
+alt Withdraw funds
+
+Strategy SC->Vault SC: withdraw(maxShares, recipient, maxLoss)
+loop withdrawal queue
+   Vault SC-->Vault SC: Strategy
+end
+note over Vault SC: assert totalLoss <= maxLoss * (value + totalLoss) / MAX_BPS
+Vault SC->Vault SC: Burn shares
+Vault SC->Token SC: safeTransfer(recipient, value)
+actor Receiver
+Token SC-->Receiver: Transfer
+else
+Receiver->Vault SC: withdraw(maxShares, recipient, maxLoss)
+loop withdrawal queue
+   Vault SC-->Vault SC: Strategy
+end
+note over Vault SC: assert totalLoss <= maxLoss * (value + totalLoss) / MAX_BPS
+Vault SC->Vault SC: Burn shares
+Vault SC->Token SC: safeTransfer(recipient, value)
+Token SC-->Receiver: Transfer
+end
+
+note over Receiver
+View the maximum quantity of shares 
+this Vault can facilitate for a withdrawal
+end note
+Receiver->Vault SC: maxAvailableShares()
+
+note over Receiver
+View the price for a single Vault share
+end note
+Receiver->Vault SC: pricePerShare()

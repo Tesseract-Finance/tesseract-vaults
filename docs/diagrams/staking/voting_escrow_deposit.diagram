@@ -1,0 +1,30 @@
+title Staking: Get veTESR
+
+actor User
+participant Voting Escrow SC
+participant TESR Token SC
+actor Recipient
+
+alt If user didn't create a lock previously
+    User->Voting Escrow SC: create_lock(value, weeks)
+    Voting Escrow SC->Voting Escrow SC: _deposit_for(Recipient address, value, unlock_time, ...)
+    else If lock already exists 
+    User->Voting Escrow SC: deposit_for(Recipient address, value)
+end alt
+
+note over Voting Escrow SC
+    Transfer TESR Tokens from the user
+end note
+Voting Escrow SC->TESR Token SC: transferFrom(Liquidity Provider Address, Voting Escrow SC address, amount)
+
+note over Voting Escrow SC
+    veTESR tokens
+end note
+
+opt
+    Recipient->Voting Escrow SC: increase_amount(value)
+end opt
+
+opt
+    Recipient->Voting Escrow SC: increase_unlock_time(value)
+end opt

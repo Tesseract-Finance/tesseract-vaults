@@ -1,0 +1,17 @@
+title Staking: Withdraw veTESR
+
+actor User
+participant Voting Escrow SC
+participant TESR Token SC
+participant Penalty Rewards SC
+
+User->Voting Escrow SC: withdraw(...)
+
+opt If block.timestamp < lock_end
+    Voting Escrow SC->TESR Token SC: transfer(User address, amount)
+else If block.timestamp > lock_end
+    Voting Escrow SC->TESR Token SC: transfer(User address, amount / 2)
+    Voting Escrow SC->TESR Token SC: transfer(Penalty Rewards SC)
+end
+
+Voting Escrow SC->Voting Escrow SC: checkpoint()

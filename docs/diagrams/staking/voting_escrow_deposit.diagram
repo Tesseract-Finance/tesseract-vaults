@@ -1,4 +1,4 @@
-title Staking: Get veTESR
+title Voting Escrow: Deposit veTESR
 
 actor User
 participant Voting Escrow SC

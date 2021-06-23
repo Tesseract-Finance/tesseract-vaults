@@ -34,6 +34,9 @@ event SetMinter:
 event SetAdmin:
     admin: address
 
+event Snapshot:
+    id: uint256
+
 
 name: public(String[64])
 symbol: public(String[32])
@@ -45,6 +48,10 @@ total_supply: uint256
 
 minter: public(address)
 admin: public(address)
+
+account_balance_snapshots: HashMap[address, uint256[MAX_UINT256]]
+total_supply_snapshots: uint256[MAX_UINT256]
+current_snapshot_id: uint256
 
 # General constants
 YEAR: constant(uint256) = 86400 * 365
@@ -87,6 +94,8 @@ def __init__(_name: String[64], _symbol: String[32], _decimals: uint256):
     self.balanceOf[msg.sender] = init_supply
     self.total_supply = init_supply
     self.admin = msg.sender
+    self.account_balance_snapshots[msg.sender][self.current_snapshot_id] = init_supply
+    self.total_supply_snapshots[self.current_snapshot_id] = init_supply
     log Transfer(ZERO_ADDRESS, msg.sender, init_supply)
 
     self.start_epoch_time = block.timestamp + INFLATION_DELAY - RATE_REDUCTION_TIME
@@ -245,6 +254,62 @@ def set_admin(_admin: address):
     log SetAdmin(_admin)
 
 
+@internal
+def increment_id():
+    self.current_snapshot_id += 1
+
+
+@external
+def snapshot() -> uint256:
+    """
+    @notice Creates a new snapshot and returns its snapshot id
+    @dev Only callable by the admin account
+    """
+    assert msg.sender == self.admin
+    self.increment_id()
+
+    log Snapshot(self.current_snapshot_id - 1)
+
+    return self.current_snapshot_id - 1
+
+
+@internal
+def update_account_snapshot(account: address):
+    """
+    @notice Update balance of `account` for the future snapshot id
+    """
+    self.account_balance_snapshots[account][self.current_snapshot_id] = self.balanceOf[account]
+
+
+@internal
+def update_total_supply_snapshot():
+    """
+    @notice Update total supply for the future snapshot id
+    """
+    self.total_supply_snapshots[self.current_snapshot_id] = self.total_supply
+
+
+@external
+def balance_of_at(account: address, snapshot_id: uint256) -> uint256:
+    """
+    @notice Retrieves the balance of `account` at the time `snapshot_id` was created
+    """
+    assert snapshot_id < self.current_snapshot_id, "Invalid Snapshot Id"
+
+    return self.account_balance_snapshots[account][snapshot_id]
+
+
+@external
+def total_supply_at(snapshot_id: uint256) -> uint256:
+    """
+    @notice Retrieves the total supply at the time `snapshot_id` was created
+    @return uint256 Total supply at the time `snapshot_id` was created
+    """
+    assert snapshot_id < self.current_snapshot_id, "Invalid Snapshot Id"
+
+    return self.total_supply_snapshots[snapshot_id]
+
+
 @external
 @view
 def totalSupply() -> uint256:
@@ -279,6 +344,10 @@ def transfer(_to : address, _value : uint256) -> bool:
     assert _to != ZERO_ADDRESS  # dev: transfers to 0x0 are not allowed
     self.balanceOf[msg.sender] -= _value
     self.balanceOf[_to] += _value
+
+    self.update_account_snapshot(msg.sender)
+    self.update_account_snapshot(_to)
+
     log Transfer(msg.sender, _to, _value)
     return True
 
@@ -298,6 +367,10 @@ def transferFrom(_from : address, _to : address, _value : uint256) -> bool:
     self.balanceOf[_from] -= _value
     self.balanceOf[_to] += _value
     self.allowances[_from][msg.sender] -= _value
+
+    self.update_account_snapshot(_from)
+    self.update_account_snapshot(_to)
+
     log Transfer(_from, _to, _value)
     return True
 
@@ -339,6 +412,10 @@ def mint(_to: address, _value: uint256) -> bool:
     self.total_supply = _total_supply
 
     self.balanceOf[_to] += _value
+
+    self.update_account_snapshot(_to)
+    self.update_total_supply_snapshot()
+
     log Transfer(ZERO_ADDRESS, _to, _value)
 
     return True
@@ -354,6 +431,9 @@ def burn(_value: uint256) -> bool:
     """
     self.balanceOf[msg.sender] -= _value
     self.total_supply -= _value
+
+    self.update_account_snapshot(msg.sender)
+    self.update_total_supply_snapshot()
 
     log Transfer(msg.sender, ZERO_ADDRESS, _value)
     return True

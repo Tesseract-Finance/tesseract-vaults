@@ -15,6 +15,12 @@ PACKAGE_VERSION = yaml.safe_load(
 VAULT_SOURCE_CODE = (Path(__file__).parents[1] / "contracts/Vault.vy").read_text()
 
 
+def approx(a, b, precision=1e-10):
+    if a == b == 0:
+        return True
+    return 2 * abs(a - b) / (a + b) <= precision
+
+
 def arg_types(args):
     # NOTE: Struct compatibility between Vyper and Solidity
     if len(args) == 1 and "components" in args[0]:

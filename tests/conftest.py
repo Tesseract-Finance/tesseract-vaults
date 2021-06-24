@@ -42,7 +42,11 @@ def tesr_token(Token, accounts):
 @pytest.fixture(scope="module")
 def voting_escrow(VotingEscrow, accounts, tesr_token):
     yield VotingEscrow.deploy(
-        tesr_token, "Voting-escrowed TESR", "veTESR", "veTESR_0.1", {"from": accounts[0]}
+        tesr_token,
+        "Voting-escrowed TESR",
+        "veTESR",
+        "veTESR_0.1",
+        {"from": accounts[0]},
     )
 
 

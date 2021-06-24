@@ -62,7 +62,9 @@ def test_voting_powers(web3, chain, accounts, tesr_token, voting_escrow):
     chain.mine()
 
     assert approx(voting_escrow.totalSupply(), amount // MAXTIME * (WEEK - 2 * H), TOL)
-    assert approx(voting_escrow.balanceOf(alice), amount // MAXTIME * (WEEK - 2 * H), TOL)
+    assert approx(
+        voting_escrow.balanceOf(alice), amount // MAXTIME * (WEEK - 2 * H), TOL
+    )
     assert voting_escrow.balanceOf(bob) == 0
     t0 = chain[-1].timestamp
 
@@ -196,7 +198,9 @@ def test_voting_powers(web3, chain, accounts, tesr_token, voting_escrow):
         assert w_bob == 0
         assert w_alice == w_total
         time_left = WEEK * (7 - i) // 7 - 2 * H
-        error_1h = H / time_left  # Rounding error of 1 block is possible, and we have 1h blocks
+        error_1h = (
+            H / time_left
+        )  # Rounding error of 1 block is possible, and we have 1h blocks
         assert approx(w_alice, amount // MAXTIME * time_left, error_1h)
 
     w_total = voting_escrow.totalSupplyAt(stages["alice_withdraw"][0])

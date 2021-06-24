@@ -33,7 +33,10 @@ class StateMachine:
 
     def setup(self):
         self.token_balances = {i: 10 ** 40 for i in self.accounts}
-        self.voting_balances = {i: {"value_locked": 0, "value_burned": 0, "unlock_time": 0} for i in self.accounts}
+        self.voting_balances = {
+            i: {"value_locked": 0, "value_burned": 0, "unlock_time": 0}
+            for i in self.accounts
+        }
 
     def rule_create_lock(self, st_account, st_value, st_lock_duration):
         unlock_time = (chain.time() + st_lock_duration * WEEK) // WEEK * WEEK
@@ -75,18 +78,26 @@ class StateMachine:
     def rule_increase_amount(self, st_account, st_value):
         if st_value == 0:
             with brownie.reverts("dev: need non-zero value"):
-                self.voting_escrow.increase_amount(st_value, {"from": st_account, "gas": GAS_LIMIT})
+                self.voting_escrow.increase_amount(
+                    st_value, {"from": st_account, "gas": GAS_LIMIT}
+                )
 
         elif self.voting_balances[st_account]["value_locked"] == 0:
             with brownie.reverts("No existing lock found"):
-                self.voting_escrow.increase_amount(st_value, {"from": st_account, "gas": GAS_LIMIT})
+                self.voting_escrow.increase_amount(
+                    st_value, {"from": st_account, "gas": GAS_LIMIT}
+                )
 
         elif self.voting_balances[st_account]["unlock_time"] <= chain.time():
             with brownie.reverts("Cannot add to expired lock. Withdraw"):
-                self.voting_escrow.increase_amount(st_value, {"from": st_account, "gas": GAS_LIMIT})
+                self.voting_escrow.increase_amount(
+                    st_value, {"from": st_account, "gas": GAS_LIMIT}
+                )
 
         else:
-            self.voting_escrow.increase_amount(st_value, {"from": st_account, "gas": GAS_LIMIT})
+            self.voting_escrow.increase_amount(
+                st_value, {"from": st_account, "gas": GAS_LIMIT}
+            )
             self.voting_balances[st_account]["value_locked"] += st_value
 
     def rule_increase_unlock_time(self, st_account, st_lock_duration):
@@ -120,7 +131,9 @@ class StateMachine:
             tx = self.voting_escrow.increase_unlock_time(
                 unlock_time, {"from": st_account, "gas": GAS_LIMIT}
             )
-            self.voting_balances[st_account]["unlock_time"] = tx.events["Deposit"]["locktime"]
+            self.voting_balances[st_account]["unlock_time"] = tx.events["Deposit"][
+                "locktime"
+            ]
 
     def rule_withdraw(self, st_account):
         """
@@ -131,9 +144,14 @@ class StateMachine:
 
         if self.voting_balances[st_account]["unlock_time"] > chain.time():
             value_received = self.voting_balances[st_account]["value_locked"] // 2
-            assert self.token.balanceOf(st_account) == balance_before_withdrawal + value_received
-            #print(balance_before_withdrawal, " ", self.token.balanceOf(st_account), " ", st_value, "\n", "------------------------------------------")
-            self.voting_balances[st_account]["value_burned"] = self.voting_balances[st_account]["value_locked"] - value_received
+            assert (
+                self.token.balanceOf(st_account)
+                == balance_before_withdrawal + value_received
+            )
+            # print(balance_before_withdrawal, " ", self.token.balanceOf(st_account), " ", st_value, "\n", "------------------------------------------")
+            self.voting_balances[st_account]["value_burned"] = (
+                self.voting_balances[st_account]["value_locked"] - value_received
+            )
 
         self.voting_balances[st_account]["value_locked"] = 0
 
@@ -154,7 +172,12 @@ class StateMachine:
         Verify that token balances are correct.
         """
         for acct in self.accounts:
-            assert self.token.balanceOf(acct) == 10 ** 40 - self.voting_balances[acct]["value_locked"] - self.voting_balances[acct]["value_burned"]
+            assert (
+                self.token.balanceOf(acct)
+                == 10 ** 40
+                - self.voting_balances[acct]["value_locked"]
+                - self.voting_balances[acct]["value_burned"]
+            )
 
     def invariant_escrow_current_balances(self):
         """
@@ -195,4 +218,6 @@ def test_state_machine(state_machine, accounts, VotingEscrow):
         token, "Voting-escrowed TESR", "veTESR", "veTESR_0.1", {"from": accounts[0]}
     )
 
-    state_machine(StateMachine, accounts[:10], token, voting_escrow, settings={"max_examples": 30})
+    state_machine(
+        StateMachine, accounts[:10], token, voting_escrow, settings={"max_examples": 30}
+    )

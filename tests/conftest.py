@@ -34,6 +34,18 @@ def arg_types(args):
     ]
 
 
+@pytest.fixture(scope="module")
+def tesr_token(Token, accounts):
+    yield Token.deploy(18, {"from": accounts[0]})
+
+
+@pytest.fixture(scope="module")
+def voting_escrow(VotingEscrow, accounts, tesr_token):
+    yield VotingEscrow.deploy(
+        tesr_token, "Voting-escrowed TESR", "veTESR", "veTESR_0.1", {"from": accounts[0]}
+    )
+
+
 @pytest.fixture
 def check_api_adherrance():
     def test_api_adherrance(Contract, InterfaceAPI):

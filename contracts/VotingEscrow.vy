@@ -64,6 +64,9 @@ event CommitOwnership:
 event ApplyOwnership:
     admin: address
 
+event RewardsContractChanged:
+    rewards_contract: address
+
 event Deposit:
     provider: indexed(address)
     value: uint256
@@ -138,6 +141,15 @@ def __init__(token_addr: address, _name: String[64], _symbol: String[32], _versi
     self.symbol = _symbol
     self.version = _version
 
+@external
+def set_rewards_contract(addr: address):
+    """
+    @notice Sets new rewards address
+    @param addr Adress to which penalties will be sent
+    """
+    assert msg.sender == self.admin  # dev: admin only
+    self.rewards_contract = addr
+    log RewardsContractChanged(addr)
 
 @external
 def commit_transfer_ownership(addr: address):
@@ -674,25 +686,3 @@ def changeController(_newController: address):
     """
     assert msg.sender == self.controller
     self.controller = _newController
-
-# MIT License
-#
-# Copyright (c) 2020 Curve Finance
-#
-# Permission is hereby granted, free of charge, to any person obtaining a copy
-# of this software and associated documentation files (the "Software"), to deal
-# in the Software without restriction, including without limitation the rights
-# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-# copies of the Software, and to permit persons to whom the Software is
-# furnished to do so, subject to the following conditions:
-#
-# The above copyright notice and this permission notice shall be included in all
-# copies or substantial portions of the Software.
-#
-# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-# SOFTWARE.

@@ -152,13 +152,16 @@ class StateMachine:
                 == balance_before_withdrawal + value_received
             )
 
-            reward_contract_value_received = self.voting_balances[st_account]["value_locked"] - value_received
-            print(reward_contract_value_received, "   ", self.token.balanceOf(self.voting_escrow_reward_address), "\n", "-------------------")
+            reward_contract_value_received = (
+                self.voting_balances[st_account]["value_locked"] - value_received
+            )
             assert (
                 self.token.balanceOf(self.voting_escrow_reward_address)
                 == reward_contract_value_received
             )
-            self.voting_balances[st_account]["value_burned"] = reward_contract_value_received
+            self.voting_balances[st_account][
+                "value_burned"
+            ] = reward_contract_value_received
 
         self.voting_balances[st_account]["value_locked"] = 0
 

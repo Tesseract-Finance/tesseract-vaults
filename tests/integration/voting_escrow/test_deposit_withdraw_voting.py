@@ -26,10 +26,13 @@ class StateMachine:
         self.accounts = accounts
         self.token = token
         self.voting_escrow = voting_escrow
+        self.voting_escrow_reward_address = "0xAb5801a7D398351b8bE11C439e05C5B3259aeC9B"
 
         for acct in accounts:
             token._mint_for_testing(acct, 10 ** 40)
             token.approve(voting_escrow, 2 ** 256 - 1, {"from": acct})
+
+        voting_escrow.set_rewards_contract(self.voting_escrow_reward_address)
 
     def setup(self):
         self.token_balances = {i: 10 ** 40 for i in self.accounts}
@@ -148,10 +151,14 @@ class StateMachine:
                 self.token.balanceOf(st_account)
                 == balance_before_withdrawal + value_received
             )
-            # print(balance_before_withdrawal, " ", self.token.balanceOf(st_account), " ", st_value, "\n", "------------------------------------------")
-            self.voting_balances[st_account]["value_burned"] = (
-                self.voting_balances[st_account]["value_locked"] - value_received
+
+            reward_contract_value_received = self.voting_balances[st_account]["value_locked"] - value_received
+            print(reward_contract_value_received, "   ", self.token.balanceOf(self.voting_escrow_reward_address), "\n", "-------------------")
+            assert (
+                self.token.balanceOf(self.voting_escrow_reward_address)
+                == reward_contract_value_received
             )
+            self.voting_balances[st_account]["value_burned"] = reward_contract_value_received
 
         self.voting_balances[st_account]["value_locked"] = 0
 

@@ -503,7 +503,7 @@ def withdraw():
     self._checkpoint(msg.sender, old_locked, _locked)
 
     assert ERC20(self.token).transfer(msg.sender, value_to_receive)
-    if block.timestamp < _locked.end:
+    if locked_value - value_to_receive > 0:
         assert ERC20(self.token).transfer(self.rewards_contract, locked_value - value_to_receive)
 
     log Withdraw(msg.sender, locked_value, block.timestamp)

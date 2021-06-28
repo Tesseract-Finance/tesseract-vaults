@@ -13,6 +13,9 @@ interface LiquidityGauge:
 interface MERC20:
     def mint(_to: address, _value: uint256) -> bool: nonpayable
 
+interface Vesting:
+    def stake(_staker: address, _amount: uint256, _lock: bool) -> bool: nonpayable
+
 interface GaugeController:
     def gauge_types(addr: address) -> int128: view
 
@@ -25,6 +28,7 @@ event Minted:
 
 token: public(address)
 controller: public(address)
+vesting: public(address)
 
 # user -> gauge -> value
 minted: public(HashMap[address, HashMap[address, uint256]])
@@ -34,9 +38,10 @@ allowed_to_mint_for: public(HashMap[address, HashMap[address, bool]])
 
 
 @external
-def __init__(_token: address, _controller: address):
+def __init__(_token: address, _controller: address, _vesting: address):
     self.token = _token
     self.controller = _controller
+    self.vesting = _vesting
 
 
 @internal
@@ -48,7 +53,8 @@ def _mint_for(gauge_addr: address, _for: address):
     to_mint: uint256 = total_mint - self.minted[_for][gauge_addr]
 
     if to_mint != 0:
-        MERC20(self.token).mint(_for, to_mint)
+        MERC20(self.token).mint(self, to_mint)
+        Vesting(self.vesting).stake(_for, to_mint, True)
         self.minted[_for][gauge_addr] = total_mint
 
         log Minted(_for, gauge_addr, total_mint)

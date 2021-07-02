@@ -98,6 +98,11 @@ def strategy(gov, strategist, keeper, rewards, vault, TestStrategy, request):
 
 
 @pytest.fixture
+def minter(accounts):
+    yield accounts[6]
+
+
+@pytest.fixture
 def rando(accounts):
     yield accounts[9]
 

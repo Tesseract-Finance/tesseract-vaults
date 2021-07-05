@@ -35,8 +35,8 @@ def arg_types(args):
 
 
 @pytest.fixture(scope="module")
-def tesr_token(Token, accounts):
-    yield Token.deploy(18, {"from": accounts[0]})
+def tesr_token(TesrToken, accounts):
+    yield TesrToken.deploy("TESR Token", "TESR", 18, {"from": accounts[0]})
 
 
 @pytest.fixture(scope="module")

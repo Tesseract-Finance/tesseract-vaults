@@ -7,7 +7,7 @@ import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 contract Token is ERC20 {
     mapping(address => bool) public _blocked;
 
-    constructor(uint8 _decimals) public ERC20("yearn.finance test token", "TEST") {
+    constructor(uint8 _decimals) public ERC20("TESR Test Token", "TESRT") {
         _setupDecimals(_decimals);
         _mint(msg.sender, 30000 * 10**uint256(_decimals));
     }
@@ -43,8 +43,8 @@ contract TokenNoReturn {
     mapping(address => bool) public _blocked;
 
     constructor(uint8 _decimals) public {
-        name = "yearn.finance test token";
-        symbol = "TEST";
+        name = "TESR Test Token";
+        symbol = "TESRT";
         decimals = _decimals;
         balanceOf[msg.sender] = 30000 * 10**uint256(_decimals);
         totalSupply = 30000 * 10**uint256(_decimals);

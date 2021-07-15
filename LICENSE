@@ -667,3 +667,7 @@ Copyright (c) 2020 Curve Finance, For licensing see /LICENCES/CURVE_DAO_CONTRACT
   - test_voting_escrow.py
   - test_zero_balance_at_unlock_time.py
   - test_votingescrow_admin.py
+  - TesrToken.vy
+  - Minter.vy
+  - GaugeController.vy
+  - LiquidityGauge.vy

@@ -33,7 +33,7 @@ contract StrategyLeveragedAAVE_USDC is BaseStrategy {
 
     // For Swapping
     IQuickSwapRouter public constant ROUTER =
-        IQuickSwapRouter(0xE592427A0AEce92De3Edee1F18E0157C05861564);
+        IQuickSwapRouter(0xa5E0829CaCEd8fFDD4De3c43696c57F7D7A678ff);
 
     IERC20 public constant WMATIC_TOKEN =
         IERC20(0x0d500B1d8E8eF31E21C99d1Db9A6444d3ADf1270);
@@ -583,5 +583,18 @@ contract StrategyLeveragedAAVE_USDC is BaseStrategy {
     // Get the rewards
     function manualClaimRewards() public onlyVaultManagers {
         _claimRewards();
+    }
+
+    // Swap from AAVE to Want
+    ///@param amountToSwap Amount of AAVE to Swap, NOTE: You have to calculate the amount!!
+    ///@param multiplierInWei pricePerToken including slippage, will be divided by 10 ** 18
+    function manualSwapFromMATICToWant(
+        uint256 amountToSwap,
+        uint256 multiplierInWei
+    ) public onlyVaultManagers {
+        uint256 amountOutMinimum =
+        amountToSwap.mul(multiplierInWei).div(10**18);
+
+        _fromMATICToWant(amountToSwap, amountOutMinimum);
     }
 }

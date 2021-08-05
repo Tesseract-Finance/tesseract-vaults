@@ -304,6 +304,11 @@ abstract contract BaseStrategy {
         _;
     }
 
+    modifier onlyVaultManagers() {
+        require(msg.sender == vault.management() || msg.sender == governance(), "!authorized");
+        _;
+    }
+
     constructor(address _vault) public {
         _initialize(_vault, msg.sender, msg.sender, msg.sender);
     }
@@ -488,13 +493,13 @@ abstract contract BaseStrategy {
      *  Care must be taken when working with decimals to assure that the conversion
      *  is compatible. As an example:
      *
-     *      given 1e17 wei (0.1 ETH) as input, and want is USDC (6 decimals),
-     *      with USDC/ETH = 1800, this should give back 1800000000 (180 USDC)
+     *      given 1e17 wei (0.1 MATIC) as input, and want is USDC (6 decimals),
+     *      with USDC/MATIC = 1800, this should give back 1800000000 (180 USDC)
      *
-     * @param _amtInWei The amount (in wei/1e-18 ETH) to convert to `want`
-     * @return The amount in `want` of `_amtInEth` converted to `want`
+     * @param _amtInWei The amount (in wei/1e-18 MATIC) to convert to `want`
+     * @return The amount in `want` of `_amtInMATIC` converted to `want`
      **/
-    function ethToWant(uint256 _amtInWei) public view virtual returns (uint256);
+    function maticToWant(uint256 _amtInWei) public view virtual returns (uint256);
 
     /**
      * @notice
@@ -609,7 +614,7 @@ abstract contract BaseStrategy {
      *  shortly, then this can return `true` even if the keeper might be
      *  "at a loss" (keepers are always reimbursed by Yearn).
      * @dev
-     *  `callCostInWei` must be priced in terms of `wei` (1e-18 ETH).
+     *  `callCostInWei` must be priced in terms of `wei` (1e-18 MATIC).
      *
      *  This call and `harvestTrigger()` should never return `true` at the same
      *  time.
@@ -620,7 +625,7 @@ abstract contract BaseStrategy {
         // We usually don't need tend, but if there are positions that need
         // active maintainence, overriding this function is how you would
         // signal for that.
-        uint256 callCost = ethToWant(callCostInWei);
+        uint256 callCost = maticToWant(callCostInWei);
         return false;
     }
 
@@ -649,7 +654,7 @@ abstract contract BaseStrategy {
      *  shortly, then this can return `true` even if the keeper might be "at a
      *  loss" (keepers are always reimbursed by Yearn).
      * @dev
-     *  `callCostInWei` must be priced in terms of `wei` (1e-18 ETH).
+     *  `callCostInWei` must be priced in terms of `wei` (1e-18 MATIC).
      *
      *  This call and `tendTrigger` should never return `true` at the
      *  same time.
@@ -669,7 +674,7 @@ abstract contract BaseStrategy {
      * @return `true` if `harvest()` should be called, `false` otherwise.
      */
     function harvestTrigger(uint256 callCostInWei) public view virtual returns (bool) {
-        uint256 callCost = ethToWant(callCostInWei);
+        uint256 callCost = maticToWant(callCostInWei);
         StrategyParams memory params = vault.strategies(address(this));
 
         // Should not trigger if Strategy is not activated

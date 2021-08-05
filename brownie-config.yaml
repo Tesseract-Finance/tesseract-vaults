@@ -7,6 +7,8 @@ autofetch_sources: true
 # require OpenZepplin Contracts
 dependencies:
   - OpenZeppelin/openzeppelin-contracts@3.1.0
+  - Uniswap/uniswap-v2-periphery@1.0.0-beta.0
+  - Aave/protocol-v2@1.0.1
 
 # path remapping to support OpenZepplin imports with NPM-style path
 compiler:
@@ -14,6 +16,8 @@ compiler:
     version: 0.6.12
     remappings:
       - "@openzeppelin=OpenZeppelin/openzeppelin-contracts@3.1.0"
+      - "@uniswap=Uniswap/uniswap-v2-periphery@1.0.0-beta.0"
+      - "@aave=Aave/protocol-v2@1.0.1"
 
 reports:
   exclude_paths:

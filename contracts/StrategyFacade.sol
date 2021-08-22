@@ -49,7 +49,7 @@ contract StrategyFacade {
             }
         }
 
-        return (canExec = true, strategy = address(0));
+        return (canExec = false, strategy = address(0));
     }
 
     function harvest(address _strategy) public {

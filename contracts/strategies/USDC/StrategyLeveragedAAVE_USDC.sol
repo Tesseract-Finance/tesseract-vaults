@@ -18,8 +18,7 @@ contract StrategyLeveragedAAVE_USDC is BaseStrategy {
     using Address for address;
     using SafeMath for uint256;
 
-    ILendingPoolAddressesProvider public constant ADDRESS_PROVIDER =
-        ILendingPoolAddressesProvider(0xd05e3E715d945B59290df0ae8eF85c1BdB684744);
+    ILendingPoolAddressesProvider public constant ADDRESS_PROVIDER = ILendingPoolAddressesProvider(0xd05e3E715d945B59290df0ae8eF85c1BdB684744);
 
     IERC20 public immutable aToken;
     IERC20 public immutable vToken;
@@ -32,11 +31,9 @@ contract StrategyLeveragedAAVE_USDC is BaseStrategy {
         IAaveIncentivesControllerExtended(0x357D51124f59836DeD84c8a1730D72B749d8BC23);
 
     // For Swapping
-    IQuickSwapRouter public constant ROUTER =
-        IQuickSwapRouter(0xa5E0829CaCEd8fFDD4De3c43696c57F7D7A678ff);
+    IQuickSwapRouter public constant ROUTER = IQuickSwapRouter(0xa5E0829CaCEd8fFDD4De3c43696c57F7D7A678ff);
 
-    IERC20 public constant WMATIC_TOKEN =
-        IERC20(0x0d500B1d8E8eF31E21C99d1Db9A6444d3ADf1270);
+    IERC20 public constant WMATIC_TOKEN = IERC20(0x0d500B1d8E8eF31E21C99d1Db9A6444d3ADf1270);
 
     uint256 public minWMATICToWantPrice = 8000; // 80% // Seems like Oracle is slightly off
 
@@ -58,15 +55,13 @@ contract StrategyLeveragedAAVE_USDC is BaseStrategy {
         debtThreshold = 0;
 
         // Get lending Pool
-        ILendingPool lendingPool =
-            ILendingPool(ADDRESS_PROVIDER.getLendingPool());
+        ILendingPool lendingPool = ILendingPool(ADDRESS_PROVIDER.getLendingPool());
 
         // Set lending pool as immutable
         LENDING_POOL = lendingPool;
 
         // Get Tokens Addresses
-        DataTypes.ReserveData memory data =
-            lendingPool.getReserveData(address(want));
+        DataTypes.ReserveData memory data = lendingPool.getReserveData(address(want));
 
         // Get aToken
         aToken = IERC20(data.aTokenAddress);
@@ -90,17 +85,11 @@ contract StrategyLeveragedAAVE_USDC is BaseStrategy {
         minRebalanceAmount = newMinRebalanceAmount;
     }
 
-    function setHarvestBeforeMigrate(bool newHarvestBeforeMigrate)
-    external
-    onlyKeepers
-    {
+    function setHarvestBeforeMigrate(bool newHarvestBeforeMigrate) external onlyKeepers {
         harvestBeforeMigrate = newHarvestBeforeMigrate;
     }
 
-    function setCheckSlippageOnHarvest(bool newCheckSlippageOnHarvest)
-    external
-    onlyKeepers
-    {
+    function setCheckSlippageOnHarvest(bool newCheckSlippageOnHarvest) external onlyKeepers {
         checkSlippageOnHarvest = newCheckSlippageOnHarvest;
     }
 
@@ -118,21 +107,20 @@ contract StrategyLeveragedAAVE_USDC is BaseStrategy {
 
     function estimatedTotalAssets() public view override returns (uint256) {
         // Balance of want + balance in AAVE
-        uint256 liquidBalance =
-        want.balanceOf(address(this)).add(deposited()).sub(borrowed());
+        uint256 liquidBalance = want.balanceOf(address(this)).add(deposited()).sub(borrowed());
 
         // Return balance + reward
         return liquidBalance.add(valueOfRewards());
     }
 
     function prepareReturn(uint256 _debtOutstanding)
-    internal
-    override
-    returns (
-        uint256 _profit,
-        uint256 _loss,
-        uint256 _debtPayment
-    )
+        internal
+        override
+        returns (
+            uint256 _profit,
+            uint256 _loss,
+            uint256 _debtPayment
+        )
     {
         // NOTE: This means that if we are paying back we just deleverage
         // While if we are not paying back, we are harvesting rewards
@@ -173,10 +161,7 @@ contract StrategyLeveragedAAVE_USDC is BaseStrategy {
         }
     }
 
-    function _repayAAVEBorrow(uint256 beforeBalance)
-    internal
-    returns (uint256 _profit, uint256 _loss)
-    {
+    function _repayAAVEBorrow(uint256 beforeBalance) internal returns (uint256 _profit, uint256 _loss) {
         uint256 afterSwapBalance = want.balanceOf(address(this));
         uint256 wantFromSwap = afterSwapBalance.sub(beforeBalance);
 
@@ -237,8 +222,7 @@ contract StrategyLeveragedAAVE_USDC is BaseStrategy {
         assets[0] = address(aToken);
         assets[1] = address(vToken);
 
-        uint256 totalRewards =
-            INCENTIVES_CONTROLLER.getRewardsBalance(assets, address(this));
+        uint256 totalRewards = INCENTIVES_CONTROLLER.getRewardsBalance(assets, address(this));
         return totalRewards;
     }
 
@@ -254,11 +238,7 @@ contract StrategyLeveragedAAVE_USDC is BaseStrategy {
         assets[1] = address(vToken);
 
         // Get Rewards, withdraw all
-        INCENTIVES_CONTROLLER.claimRewards(
-            assets,
-            type(uint256).max,
-            address(this)
-        );
+        INCENTIVES_CONTROLLER.claimRewards(assets, type(uint256).max, address(this));
     }
 
     function _fromMATICToWant(uint256 amountIn, uint256 minOut) internal {
@@ -266,13 +246,7 @@ contract StrategyLeveragedAAVE_USDC is BaseStrategy {
         path[0] = address(WMATIC_TOKEN);
         path[1] = address(want);
 
-        ROUTER.swapExactTokensForTokens(
-            amountIn,
-            minOut,
-            path,
-            address(this),
-            now
-        );
+        ROUTER.swapExactTokensForTokens(amountIn, minOut, path, address(this), now);
     }
 
     function _claimRewardsAndGetMoreWant() internal {
@@ -291,19 +265,13 @@ contract StrategyLeveragedAAVE_USDC is BaseStrategy {
 
         uint256 minWantOut = 0;
         if (checkSlippageOnHarvest) {
-            minWantOut = maticToWant(maticToSwap)
-            .mul(minWMATICToWantPrice)
-            .div(MAX_BPS);
+            minWantOut = maticToWant(maticToSwap).mul(minWMATICToWantPrice).div(MAX_BPS);
         }
 
         _fromMATICToWant(maticToSwap, minWantOut);
     }
 
-    function liquidatePosition(uint256 _amountNeeded)
-    internal
-    override
-    returns (uint256 _liquidatedAmount, uint256 _loss)
-    {
+    function liquidatePosition(uint256 _amountNeeded) internal override returns (uint256 _liquidatedAmount, uint256 _loss) {
         // TODO: Do stuff here to free up to `_amountNeeded` from all positions back into `want`
         // NOTE: Maintain invariant `want.balanceOf(this) >= _liquidatedAmount`
         // NOTE: Maintain invariant `_liquidatedAmount + _loss <= _amountNeeded`
@@ -370,12 +338,7 @@ contract StrategyLeveragedAAVE_USDC is BaseStrategy {
     //      protected[2] = tokenC;
     //      return protected;
     //    }
-    function protectedTokens()
-    internal
-    view
-    override
-    returns (address[] memory)
-    {
+    function protectedTokens() internal view override returns (address[] memory) {
         address[] memory protected = new address[](2);
         protected[0] = address(aToken);
         protected[1] = address(WMATIC_TOKEN);
@@ -396,16 +359,9 @@ contract StrategyLeveragedAAVE_USDC is BaseStrategy {
      * @param _amtInWei The amount (in wei/1e-18 ETH) to convert to `want`
      * @return The amount in `want` of `_amtInEth` converted to `want`
      **/
-    function maticToWant(uint256 _amtInWei)
-    public
-    view
-    virtual
-    override
-    returns (uint256)
-    {
+    function maticToWant(uint256 _amtInWei) public view virtual override returns (uint256) {
         address priceOracle = ADDRESS_PROVIDER.getPriceOracle();
-        uint256 priceInMATIC =
-            IPriceOracle(priceOracle).getAssetPrice(address(want));
+        uint256 priceInMATIC = IPriceOracle(priceOracle).getAssetPrice(address(want));
 
         // Opposite of priceInMATIC
         // Multiply first to keep rounding
@@ -426,12 +382,12 @@ contract StrategyLeveragedAAVE_USDC is BaseStrategy {
     // What should we repay?
     function debtBelowHealth() public view returns (uint256) {
         (
-        uint256 totalCollateralETH,
-        uint256 totalDebtETH,
-        uint256 availableBorrowsETH,
-        uint256 currentLiquidationThreshold,
-        uint256 ltv,
-        uint256 healthFactor
+            uint256 totalCollateralETH,
+            uint256 totalDebtETH,
+            uint256 availableBorrowsETH,
+            uint256 currentLiquidationThreshold,
+            uint256 ltv,
+            uint256 healthFactor
         ) = LENDING_POOL.getUserAccountData(address(this));
 
         // How much did we go off of minHealth? //NOTE: We always borrow as much as we can
@@ -449,19 +405,18 @@ contract StrategyLeveragedAAVE_USDC is BaseStrategy {
     // NOTE: We always borrow max, no fucks given
     function canBorrow() public view returns (uint256) {
         (
-        uint256 totalCollateralETH,
-        uint256 totalDebtETH,
-        uint256 availableBorrowsETH,
-        uint256 currentLiquidationThreshold,
-        uint256 ltv,
-        uint256 healthFactor
+            uint256 totalCollateralETH,
+            uint256 totalDebtETH,
+            uint256 availableBorrowsETH,
+            uint256 currentLiquidationThreshold,
+            uint256 ltv,
+            uint256 healthFactor
         ) = LENDING_POOL.getUserAccountData(address(this));
 
         if (healthFactor > minHealth) {
             // Amount = deposited * ltv - borrowed
             // Div MAX_BPS because because ltv / maxbps is the percent
-            uint256 maxValue =
-                deposited().mul(ltv).div(MAX_BPS).sub(borrowed());
+            uint256 maxValue = deposited().mul(ltv).div(MAX_BPS).sub(borrowed());
 
             // Don't borrow if it's dust, save gas
             if (maxValue < minRebalanceAmount) {
@@ -480,13 +435,7 @@ contract StrategyLeveragedAAVE_USDC is BaseStrategy {
         for (uint256 i = 0; i < max_iterations; i++) {
             uint256 toBorrow = canBorrow();
             if (toBorrow > 0) {
-                LENDING_POOL.borrow(
-                    address(want),
-                    toBorrow,
-                    2,
-                    0,
-                    address(this)
-                );
+                LENDING_POOL.borrow(address(want), toBorrow, 2, 0, address(this));
 
                 LENDING_POOL.deposit(address(want), toBorrow, address(this), 0);
             } else {
@@ -506,11 +455,7 @@ contract StrategyLeveragedAAVE_USDC is BaseStrategy {
         }
         if (deposited() > 0) {
             // Withdraw the rest here
-            LENDING_POOL.withdraw(
-                address(want),
-                type(uint256).max,
-                address(this)
-            );
+            LENDING_POOL.withdraw(address(want), type(uint256).max, address(this));
         }
     }
 
@@ -526,12 +471,12 @@ contract StrategyLeveragedAAVE_USDC is BaseStrategy {
     // returns 95% of the collateral we can withdraw from aave, used to loop and repay debts
     function canRepay() public view returns (uint256) {
         (
-        uint256 totalCollateralETH,
-        uint256 totalDebtETH,
-        uint256 availableBorrowsETH,
-        uint256 currentLiquidationThreshold,
-        uint256 ltv,
-        uint256 healthFactor
+            uint256 totalCollateralETH,
+            uint256 totalDebtETH,
+            uint256 availableBorrowsETH,
+            uint256 currentLiquidationThreshold,
+            uint256 ltv,
+            uint256 healthFactor
         ) = LENDING_POOL.getUserAccountData(address(this));
 
         uint256 aBalance = deposited();
@@ -541,8 +486,7 @@ contract StrategyLeveragedAAVE_USDC is BaseStrategy {
             return uint256(-1); //You have repaid all
         }
 
-        uint256 diff =
-        aBalance.sub(vBalance.mul(10000).div(currentLiquidationThreshold));
+        uint256 diff = aBalance.sub(vBalance.mul(10000).div(currentLiquidationThreshold));
         uint256 inWant = diff.mul(95).div(100); // Take 95% just to be safe
 
         return inWant;
@@ -564,10 +508,7 @@ contract StrategyLeveragedAAVE_USDC is BaseStrategy {
 
     // Emergency function that we can use to deleverage manually if something is broken
     // If something goes wrong, just try smaller and smaller can repay amounts
-    function manualWithdrawStepFromAAVE(uint256 toRepay)
-    public
-    onlyVaultManagers
-    {
+    function manualWithdrawStepFromAAVE(uint256 toRepay) public onlyVaultManagers {
         _withdrawStepFromAAVE(toRepay);
     }
 
@@ -588,12 +529,8 @@ contract StrategyLeveragedAAVE_USDC is BaseStrategy {
     // Swap from AAVE to Want
     ///@param amountToSwap Amount of AAVE to Swap, NOTE: You have to calculate the amount!!
     ///@param multiplierInWei pricePerToken including slippage, will be divided by 10 ** 18
-    function manualSwapFromMATICToWant(
-        uint256 amountToSwap,
-        uint256 multiplierInWei
-    ) public onlyVaultManagers {
-        uint256 amountOutMinimum =
-        amountToSwap.mul(multiplierInWei).div(10**18);
+    function manualSwapFromMATICToWant(uint256 amountToSwap, uint256 multiplierInWei) public onlyVaultManagers {
+        uint256 amountOutMinimum = amountToSwap.mul(multiplierInWei).div(10**18);
 
         _fromMATICToWant(amountToSwap, amountOutMinimum);
     }

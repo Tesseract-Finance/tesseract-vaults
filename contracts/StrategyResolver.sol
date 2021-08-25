@@ -1,48 +1,28 @@
 // SPDX-License-Identifier: GNU Affero
 pragma solidity ^0.6.0;
 
-/// @title Functions from the Facade which Resolver needs to call
-interface IStrategyFacade {
-    function checkHarvest(uint256 _callCost) external view returns (bool canExec, address strategy);
+import "@openzeppelin/contracts/access/Ownable.sol";
 
-    function harvest(address _strategy) external;
-}
+import "./interfaces/IStrategyFacade.sol";
 
 /// @title Resolver contract for Gelato harvest bot
 /// @author Tesseract Finance
-contract StrategyResolver {
-    address public immutable multiSig;
+contract StrategyResolver is Ownable {
     address public facade;
-    uint256 public checkInterval;
-    uint256 public lastExecuted;
 
-    event CheckIntervalUpdated(uint256 checkInterval);
+    event FacadeContractUpdated(address facade);
 
-    modifier onlyMultiSig {
-        require(msg.sender == multiSig, "Only MultiSig can call");
-        _;
-    }
-
-    constructor(
-        address _multiSig,
-        address _facade,
-        uint256 _checkInterval
-    ) public {
-        multiSig = _multiSig;
+    constructor(address _facade) public {
         facade = _facade;
-        checkInterval = _checkInterval;
-        lastExecuted = block.timestamp;
     }
 
-    function setCheckInterval(uint256 _checkInterval) public onlyMultiSig {
-        checkInterval = _checkInterval;
+    function setFacadeContract(address _facade) public onlyOwner {
+        facade = _facade;
 
-        emit CheckIntervalUpdated(_checkInterval);
+        emit FacadeContractUpdated(_facade);
     }
 
     function check(uint256 _callCost) external view returns (bool canExec, bytes memory execPayload) {
-        require((block.timestamp - lastExecuted) > checkInterval, "StrategyResolver::check: Too early to execute action smart contract");
-
         (bool _canExec, address _strategy) = IStrategyFacade(facade).checkHarvest(_callCost);
 
         canExec = _canExec;

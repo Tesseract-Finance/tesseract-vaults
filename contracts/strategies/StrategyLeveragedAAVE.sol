@@ -13,7 +13,7 @@ import "../../BaseStrategy.sol";
 import "../../interfaces/IQuickSwapRouter.sol";
 import "../../interfaces/IAaveIncentivesControllerExtended.sol";
 
-contract StrategyLeveragedAAVE_USDC is BaseStrategy {
+contract StrategyLeveragedAAVE is BaseStrategy {
     using SafeERC20 for IERC20;
     using Address for address;
     using SafeMath for uint256;
@@ -41,12 +41,12 @@ contract StrategyLeveragedAAVE_USDC is BaseStrategy {
     bool public harvestBeforeMigrate = true;
 
     // Should we ensure the swap will be within slippage params before performing it during normal harvest?
-    bool public checkSlippageOnHarvest = true;
+    bool public checkSlippageOnHarvest = false;
 
     // Leverage
     uint256 public constant MAX_BPS = 10000;
     uint256 public minHealth = 1080000000000000000; // 1.08 with 18 decimals this is slighly above 70% tvl
-    uint256 public minRebalanceAmount = 10000000; // 10$, should be changed based on decimals (usdc has 6)
+    uint256 public minRebalanceAmount = 10000000; // 10$, should be changed based on decimals (usdt has 6)
 
     constructor(address _vault) public BaseStrategy(_vault) {
         // You can set these parameters on deployment to whatever you want
@@ -101,8 +101,7 @@ contract StrategyLeveragedAAVE_USDC is BaseStrategy {
     // ******** OVERRIDE THESE METHODS FROM BASE CONTRACT ************
 
     function name() external view override returns (string memory) {
-        // Add your own name here, suggestion e.g. "StrategyCreamYFI"
-        return "Strategy-Levered-AAVE-USDC";
+        return string(abi.encodePacked("Strategy-Leveraged-AAVE-", ERC20(address(want)).symbol()));
     }
 
     function estimatedTotalAssets() public view override returns (uint256) {

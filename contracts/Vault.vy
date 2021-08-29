@@ -5,7 +5,7 @@
 @author Tesseract Finance
 """
 
-API_VERSION: constant(String[28]) = "0.4.2"
+API_VERSION: constant(String[28]) = "0.4.3"
 
 from vyper.interfaces import ERC20
 
@@ -227,7 +227,7 @@ def initialize(
         If `symbolOverride` is not specified, the symbol will be 'tv'
         combined with the symbol of `token`.
 
-        The token used by the vault should not change balances outside transfers and 
+        The token used by the vault should not change balances outside transfers and
         it must transfer the exact amount requested. Fee on transfer and rebasing are not supported.
     @param token The token that may be deposited into this Vault.
     @param governance The address authorized for governance interactions.
@@ -526,7 +526,7 @@ def setWithdrawalQueue(queue: address[MAXIMUM_STRATEGIES]):
     # HACK: Temporary until Vyper adds support for Dynamic arrays
     old_queue: address[MAXIMUM_STRATEGIES] = empty(address[MAXIMUM_STRATEGIES])
     for i in range(MAXIMUM_STRATEGIES):
-        old_queue[i] = self.withdrawalQueue[i] 
+        old_queue[i] = self.withdrawalQueue[i]
         if queue[i] == ZERO_ADDRESS:
             # NOTE: Cannot use this method to remove entries from the queue
             assert old_queue[i] == ZERO_ADDRESS
@@ -771,8 +771,13 @@ def _calculateLockedProfit() -> uint256:
                 * lockedProfit
                 / DEGRADATION_COEFFICIENT
             )
-    else:        
+    else:
         return 0
+
+@view
+@internal
+def _freeFunds() -> uint256:
+    return self._totalAssets() - self._calculateLockedProfit()
 
 @internal
 def _issueSharesForAmount(to: address, amount: uint256) -> uint256:
@@ -786,8 +791,7 @@ def _issueSharesForAmount(to: address, amount: uint256) -> uint256:
     if totalSupply > 0:
         # Mint amount of shares based on what the Vault is managing overall
         # NOTE: if sqrt(token.totalSupply()) > 1e39, this could potentially revert
-        freeFunds: uint256 = self._totalAssets() - self._calculateLockedProfit()
-        shares =  amount * totalSupply / freeFunds  # dev: no free funds
+        shares =  amount * totalSupply / self._freeFunds()  # dev: no free funds
     else:
         # No existing shares, so mint 1:1
         shares = amount
@@ -874,11 +878,10 @@ def _shareValue(shares: uint256) -> uint256:
 
     # Determines the current value of `shares`.
     # NOTE: if sqrt(Vault.totalAssets()) >>> 1e39, this could potentially revert
-    freeFunds: uint256 = self._totalAssets() - self._calculateLockedProfit()
 
     return (
         shares
-        * freeFunds
+        * self._freeFunds()
         / self.totalSupply
     )
 
@@ -888,12 +891,13 @@ def _shareValue(shares: uint256) -> uint256:
 def _sharesForAmount(amount: uint256) -> uint256:
     # Determines how many shares `amount` of token would receive.
     # See dev note on `deposit`.
-    if self._totalAssets() > 0:
+    _freeFunds: uint256 = self._freeFunds()
+    if _freeFunds > 0:
         # NOTE: if sqrt(token.totalSupply()) > 1e37, this could potentially revert
         return  (
             amount
             * self.totalSupply
-            / self._totalAssets()
+            / _freeFunds
         )
     else:
         return 0
@@ -988,9 +992,9 @@ def withdraw(
         through external means, accounting for whatever exceptional scenarios
         exist for the Vault (that aren't covered by the Vault's own design.)
 
-        In the situation where a large withdrawal happens, it can empty the 
-        vault balance and the strategies in the withdrawal queue. 
-        Strategies not in the withdrawal queue will have to be harvested to 
+        In the situation where a large withdrawal happens, it can empty the
+        vault balance and the strategies in the withdrawal queue.
+        Strategies not in the withdrawal queue will have to be harvested to
         rebalance the funds and make the funds available again to withdraw.
     @param maxShares
         How many shares to try and redeem for tokens, defaults to all.
@@ -999,6 +1003,7 @@ def withdraw(
         caller's address.
     @param maxLoss
         The maximum acceptable loss to sustain on withdrawal. Defaults to 0.01%.
+        If a loss is specified, up to that amount of shares may be burnt to cover losses on withdrawal.
     @return The quantity of tokens redeemed for `_shares`.
     """
     shares: uint256 = maxShares  # May reduce this number below
@@ -1156,7 +1161,7 @@ def addStrategy(
     # Check strategy parameters
     assert self.debtRatio + debtRatio <= MAX_BPS
     assert minDebtPerHarvest <= maxDebtPerHarvest
-    assert performanceFee <= MAX_BPS / 2 
+    assert performanceFee <= MAX_BPS / 2
 
     # Add strategy to approved strategies
     self.strategies[strategy] = StrategyParams({
@@ -1447,7 +1452,7 @@ def _creditAvailable(strategy: address) -> uint256:
     if self.emergencyShutdown:
         return 0
     vault_totalAssets: uint256 = self._totalAssets()
-    vault_debtLimit: uint256 =  self.debtRatio * vault_totalAssets / MAX_BPS 
+    vault_debtLimit: uint256 =  self.debtRatio * vault_totalAssets / MAX_BPS
     vault_totalDebt: uint256 = self.totalDebt
     strategy_debtLimit: uint256 = self.strategies[strategy].debtRatio * vault_totalAssets / MAX_BPS
     strategy_totalDebt: uint256 = self.strategies[strategy].totalDebt
@@ -1559,7 +1564,7 @@ def _assessFees(strategy: address, gain: uint256) -> uint256:
     management_fee: uint256 = (
         (
             (self.strategies[strategy].totalDebt - Strategy(strategy).delegatedAssets())
-            * duration 
+            * duration
             * self.managementFee
         )
         / MAX_BPS
@@ -1691,7 +1696,7 @@ def report(gain: uint256, loss: uint256, _debtPayment: uint256) -> uint256:
     # Profit is locked and gradually released per block
     # NOTE: compute current locked profit and replace with sum of current and new
     lockedProfitBeforeLoss: uint256 = self._calculateLockedProfit() + gain - totalFees
-    if lockedProfitBeforeLoss > loss: 
+    if lockedProfitBeforeLoss > loss:
         self.lockedProfit = lockedProfitBeforeLoss - loss
     else:
         self.lockedProfit = 0

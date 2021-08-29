@@ -20,13 +20,12 @@ interface RegistryAPI {
 }
 
 /**
- * @title Yearn Base Wrapper
- * @author yearn.finance
+ * @title Tesseract Base Wrapper
+ * @author Tesseract finance
  * @notice
  *  BaseWrapper implements all of the required functionality to interoperate
  *  closely with the Vault contract. This contract should be inherited and the
  *  abstract methods implemented to adapt the Wrapper.
- *  A good starting point to build a wrapper is https://github.com/yearn/brownie-wrapper-mix
  *
  */
 abstract contract BaseWrapper {
@@ -54,13 +53,12 @@ abstract contract BaseWrapper {
     constructor(address _token, address _registry) public {
         // Recommended to use a token with a `Registry.latestVault(_token) != address(0)`
         token = IERC20(_token);
-        // Recommended to use `v2.registry.ychad.eth`
         registry = RegistryAPI(_registry);
     }
 
     /**
      * @notice
-     *  Used to update the yearn registry.
+     *  Used to update the tesseract registry.
      * @param _registry The new _registry address.
      */
     function setRegistry(address _registry) external {
@@ -109,7 +107,7 @@ abstract contract BaseWrapper {
     }
 
     function _updateVaultCache(VaultAPI[] memory vaults) internal {
-        // NOTE: even though `registry` is update-able by Yearn, the intended behavior
+        // NOTE: even though `registry` is update-able by Tesseract, the intended behavior
         //       is that any future upgrades to the registry will replay the version
         //       history so that this cached value does not get out of date.
         if (vaults.length > _cachedVaults.length) {

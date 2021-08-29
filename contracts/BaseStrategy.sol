@@ -159,9 +159,19 @@ interface StrategyAPI {
     event Harvested(uint256 profit, uint256 loss, uint256 debtPayment, uint256 debtOutstanding);
 }
 
+interface HealthCheck {
+    function check(
+        uint256 profit,
+        uint256 loss,
+        uint256 debtPayment,
+        uint256 debtOutstanding,
+        uint256 totalDebt
+    ) external view returns (bool);
+}
+
 /**
- * @title Yearn Base Strategy
- * @author yearn.finance
+ * @title Tesseract Base Strategy
+ * @author Tesseract finance
  * @notice
  *  BaseStrategy implements all of the required functionality to interoperate
  *  closely with the Vault contract. This contract should be inherited and the
@@ -181,6 +191,10 @@ abstract contract BaseStrategy {
     using SafeERC20 for IERC20;
     string public metadataURI;
 
+    // health checks
+    bool public doHealthCheck;
+    address public healthCheck;
+
     /**
      * @notice
      *  Used to track which version of `StrategyAPI` this Strategy
@@ -189,7 +203,7 @@ abstract contract BaseStrategy {
      * @return A string which holds the current API version of this contract.
      */
     function apiVersion() public pure returns (string memory) {
-        return "0.4.2";
+        return "0.4.3";
     }
 
     /**
@@ -205,16 +219,16 @@ abstract contract BaseStrategy {
     /**
      * @notice
      *  The amount (priced in want) of the total assets managed by this strategy should not count
-     *  towards Yearn's TVL calculations.
+     *  towards TESRS's TVL calculations.
      * @dev
      *  You can override this field to set it to a non-zero value if some of the assets of this
-     *  Strategy is somehow delegated inside another part of of Yearn's ecosystem e.g. another Vault.
+     *  Strategy is somehow delegated inside another part of of TESR's ecosystem e.g. another Vault.
      *  Note that this value must be strictly less than or equal to the amount provided by
      *  `estimatedTotalAssets()` below, as the TVL calc will be total assets minus delegated assets.
      *  Also note that this value is used to determine the total assets under management by this
      *  strategy, for the purposes of computing the management fee in `Vault`
      * @return
-     *  The amount of assets this strategy manages that should not be included in Yearn's Total Value
+     *  The amount of assets this strategy manages that should not be included in TESR's Total Value
      *  Locked (TVL) calculation across it's ecosystem.
      */
     function delegatedAssets() external view virtual returns (uint256) {
@@ -347,6 +361,14 @@ abstract contract BaseStrategy {
         debtThreshold = 0;
 
         vault.approve(rewards, uint256(-1)); // Allow rewards to be pulled
+    }
+
+    function setHealthCheck(address _healthCheck) external onlyVaultManagers {
+        healthCheck = _healthCheck;
+    }
+
+    function setDoHealthCheck(bool _doHealthCheck) external onlyVaultManagers {
+        doHealthCheck = _doHealthCheck;
     }
 
     /**
@@ -612,7 +634,7 @@ abstract contract BaseStrategy {
      *  the only consideration into issuing this trigger, for example if the
      *  position would be negatively affected if `tend()` is not called
      *  shortly, then this can return `true` even if the keeper might be
-     *  "at a loss" (keepers are always reimbursed by Yearn).
+     *  "at a loss".
      * @dev
      *  `callCostInWei` must be priced in terms of `wei` (1e-18 MATIC).
      *
@@ -625,7 +647,9 @@ abstract contract BaseStrategy {
         // We usually don't need tend, but if there are positions that need
         // active maintainence, overriding this function is how you would
         // signal for that.
-        uint256 callCost = maticToWant(callCostInWei);
+        // If your implementation uses the cost of the call in want, you can
+        // use uint256 callCost = ethToWant(callCostInWei);
+
         return false;
     }
 
@@ -652,7 +676,7 @@ abstract contract BaseStrategy {
      *  the only consideration into issuing this trigger, for example if the
      *  position would be negatively affected if `harvest()` is not called
      *  shortly, then this can return `true` even if the keeper might be "at a
-     *  loss" (keepers are always reimbursed by Yearn).
+     *  loss".
      * @dev
      *  `callCostInWei` must be priced in terms of `wei` (1e-18 MATIC).
      *
@@ -665,11 +689,6 @@ abstract contract BaseStrategy {
      *  with the parameters reported to the Vault (see `params`) to determine
      *  if calling `harvest()` is merited.
      *
-     *  It is expected that an external system will check `harvestTrigger()`.
-     *  This could be a script run off a desktop or cloud bot (e.g.
-     *  https://github.com/iearn-finance/yearn-vaults/blob/master/scripts/keep.py),
-     *  or via an integration with the Keep3r network (e.g.
-     *  https://github.com/Macarse/GenericKeep3rV2/blob/master/contracts/keep3r/GenericKeep3rV2.sol).
      * @param callCostInWei The keeper's estimated gas cost to call `harvest()` (in wei).
      * @return `true` if `harvest()` should be called, `false` otherwise.
      */
@@ -747,10 +766,18 @@ abstract contract BaseStrategy {
         // Allow Vault to take up to the "harvested" balance of this contract,
         // which is the amount it has earned since the last time it reported to
         // the Vault.
+        uint256 totalDebt = vault.strategies(address(this)).totalDebt;
         debtOutstanding = vault.report(profit, loss, debtPayment);
 
         // Check if free returns are left, and re-invest them
         adjustPosition(debtOutstanding);
+
+        // call healthCheck contract
+        if (doHealthCheck && healthCheck != address(0)) {
+            require(HealthCheck(healthCheck).check(profit, loss, debtPayment, debtOutstanding, totalDebt), "!healthcheck");
+        } else {
+            doHealthCheck = true;
+        }
 
         emit Harvested(profit, loss, debtPayment, debtOutstanding);
     }

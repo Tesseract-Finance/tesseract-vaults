@@ -9,9 +9,9 @@ import "@aave/contracts/interfaces/ILendingPool.sol";
 import "@aave/contracts/interfaces/ILendingPoolAddressesProvider.sol";
 import "@aave/contracts/protocol/libraries/types/DataTypes.sol";
 import "@aave/contracts/interfaces/IPriceOracle.sol";
-import "../../BaseStrategy.sol";
-import "../../interfaces/IQuickSwapRouter.sol";
-import "../../interfaces/IAaveIncentivesControllerExtended.sol";
+import "../BaseStrategy.sol";
+import "../interfaces/IQuickSwapRouter.sol";
+import "../interfaces/IAaveIncentivesControllerExtended.sol";
 
 contract StrategyLeveragedAAVE is BaseStrategy {
     using SafeERC20 for IERC20;

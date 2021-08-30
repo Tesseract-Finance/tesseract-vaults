@@ -171,7 +171,7 @@ def sign_vault_permit():
         deadline: int = 0,  # 0 means no time limit
         override_nonce: int = None,
     ):
-        name = "Yearn Vault"
+        name = "Tesseract Vault"
         version = vault.apiVersion()
         if override_nonce:
             nonce = override_nonce

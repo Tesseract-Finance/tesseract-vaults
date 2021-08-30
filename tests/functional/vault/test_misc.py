@@ -73,7 +73,7 @@ def test_credit_available_minDebtPerHarvest_larger_than_available(
     strategyDebtExceedsLimit = strategy_totalDebt >= strategy_debtLimit
     vaultDebtExceedsLimit = vault_totalDebt >= vault_debtLimit
     exhaustedCreditLine = vaultDebtExceedsLimit or strategyDebtExceedsLimit
-    assert exhaustedCreditLine == False
+    assert not exhaustedCreditLine
 
     # Start with debt limit left for the Strategy
     available = strategy_debtLimit - strategy_totalDebt
@@ -87,7 +87,7 @@ def test_credit_available_minDebtPerHarvest_larger_than_available(
     vault.updateStrategyMinDebtPerHarvest(strategy, available + 1, {"from": gov})
     strategy_minDebtPerHarvest = vault.strategies(strategy).dict()["minDebtPerHarvest"]
     minDebtPerHarvestExceedsAvailable = strategy_minDebtPerHarvest > available
-    assert minDebtPerHarvestExceedsAvailable == True
+    assert minDebtPerHarvestExceedsAvailable
 
     creditAvalable = vault.creditAvailable(strategy)
     assert creditAvalable == 0
@@ -96,7 +96,7 @@ def test_credit_available_minDebtPerHarvest_larger_than_available(
 def test_regular_available_deposit_limit(Vault, token, gov):
     vault = gov.deploy(Vault)
     vault.initialize(
-        token, gov, gov, token.symbol() + " yVault", "yv" + token.symbol(), gov
+        token, gov, gov, token.symbol() + " tVault", "tv" + token.symbol(), gov
     )
     token.approve(vault, 100, {"from": gov})
     vault.setDepositLimit(100)
@@ -111,7 +111,7 @@ def test_regular_available_deposit_limit(Vault, token, gov):
 def test_negative_available_deposit_limit(Vault, token, gov):
     vault = gov.deploy(Vault)
     vault.initialize(
-        token, gov, gov, token.symbol() + " yVault", "yv" + token.symbol(), gov
+        token, gov, gov, token.symbol() + " tVault", "tv" + token.symbol(), gov
     )
     token.approve(vault, 100, {"from": gov})
     vault.setDepositLimit(100)

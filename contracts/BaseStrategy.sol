@@ -299,10 +299,10 @@ abstract contract BaseStrategy {
     modifier onlyKeepers() {
         require(
             msg.sender == keeper ||
-            msg.sender == strategist ||
-            msg.sender == governance() ||
-            msg.sender == vault.guardian() ||
-            msg.sender == vault.management(),
+                msg.sender == strategist ||
+                msg.sender == governance() ||
+                msg.sender == vault.guardian() ||
+                msg.sender == vault.management(),
             "!authorized"
         );
         _;

@@ -375,10 +375,14 @@ contract StrategyLeveragedAAVE is BaseStrategy {
     // What should we repay?
     function debtBelowHealth() public view returns (uint256) {
         (
-            /*uint256 totalCollateralETH*/,
-            /*uint256 totalDebtETH*/,
-            /*uint256 availableBorrowsETH*/,
-            /*uint256 currentLiquidationThreshold*/,
+            ,
+            ,
+            ,
+            ,
+            /*uint256 totalCollateralETH*/
+            /*uint256 totalDebtETH*/
+            /*uint256 availableBorrowsETH*/
+            /*uint256 currentLiquidationThreshold*/
             uint256 ltv,
             uint256 healthFactor
         ) = LENDING_POOL.getUserAccountData(address(this));
@@ -398,10 +402,14 @@ contract StrategyLeveragedAAVE is BaseStrategy {
     // NOTE: We always borrow max, no fucks given
     function canBorrow() public view returns (uint256) {
         (
-            /*uint256 totalCollateralETH*/,
-            /*uint256 totalDebtETH*/,
-            /*uint256 availableBorrowsETH*/,
-            /*uint256 currentLiquidationThreshold*/,
+            ,
+            ,
+            ,
+            ,
+            /*uint256 totalCollateralETH*/
+            /*uint256 totalDebtETH*/
+            /*uint256 availableBorrowsETH*/
+            /*uint256 currentLiquidationThreshold*/
             uint256 ltv,
             uint256 healthFactor
         ) = LENDING_POOL.getUserAccountData(address(this));
@@ -464,13 +472,19 @@ contract StrategyLeveragedAAVE is BaseStrategy {
     // returns 95% of the collateral we can withdraw from aave, used to loop and repay debts
     function canRepay() public view returns (uint256) {
         (
-            /*uint256 totalCollateralETH*/,
-            /*uint256 totalDebtETH*/,
-            /*uint256 availableBorrowsETH*/,
+            ,
+            ,
+            ,
+            /*uint256 totalCollateralETH*/
+            /*uint256 totalDebtETH*/
+            /*uint256 availableBorrowsETH*/
             uint256 currentLiquidationThreshold,
-            /*uint256 ltv*/,
+            ,
+
+        ) =
+            /*uint256 ltv*/
             /*uint256 healthFactor*/
-        ) = LENDING_POOL.getUserAccountData(address(this));
+            LENDING_POOL.getUserAccountData(address(this));
 
         uint256 aBalance = deposited();
         uint256 vBalance = borrowed();

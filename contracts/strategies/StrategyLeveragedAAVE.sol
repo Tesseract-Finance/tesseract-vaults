@@ -46,7 +46,7 @@ contract StrategyLeveragedAAVE is BaseStrategy {
     // Leverage
     uint256 public constant MAX_BPS = 10000;
     uint256 public minHealth = 1080000000000000000; // 1.08 with 18 decimals this is slighly above 70% tvl
-    uint256 public minRebalanceAmount = 10000000; // 10$, should be changed based on decimals (usdt has 6)
+    uint256 public minRebalanceAmount = 0; // should be changed based on decimals of the want token
 
     constructor(address _vault) public BaseStrategy(_vault) {
         // You can set these parameters on deployment to whatever you want
@@ -63,10 +63,10 @@ contract StrategyLeveragedAAVE is BaseStrategy {
         // Get Tokens Addresses
         DataTypes.ReserveData memory data = lendingPool.getReserveData(address(want));
 
-        // Get aToken
+        // Get aToken - aToken is AAVE Market Token address of the want token
         aToken = IERC20(data.aTokenAddress);
 
-        // Get vToken
+        // Get vToken - vToken is AAVE Market variable debt address of the want token
         vToken = IERC20(data.variableDebtTokenAddress);
 
         // Get Decimals

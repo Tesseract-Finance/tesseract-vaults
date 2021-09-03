@@ -161,9 +161,6 @@ contract StrategyLeveragedAAVE is BaseStrategy {
     }
 
     function _repayAAVEBorrow(uint256 beforeBalance) internal returns (uint256 _profit, uint256 _loss) {
-        uint256 afterSwapBalance = want.balanceOf(address(this));
-        uint256 wantFromSwap = afterSwapBalance.sub(beforeBalance);
-
         // Calculate Gain from AAVE interest // NOTE: This should never happen as we take more debt than we earn
         uint256 currentWantInAave = deposited().sub(borrowed());
         uint256 initialDeposit = vault.strategies(address(this)).totalDebt;
@@ -256,9 +253,6 @@ contract StrategyLeveragedAAVE is BaseStrategy {
         if (rewardsAmount == 0) {
             return;
         }
-
-        // Specify a min out
-        uint256 minWMATICOut = rewardsAmount.mul(minWMATICToWantPrice).div(MAX_BPS);
 
         uint256 maticToSwap = WMATIC_TOKEN.balanceOf(address(this));
 
@@ -381,10 +375,10 @@ contract StrategyLeveragedAAVE is BaseStrategy {
     // What should we repay?
     function debtBelowHealth() public view returns (uint256) {
         (
-            uint256 totalCollateralETH,
-            uint256 totalDebtETH,
-            uint256 availableBorrowsETH,
-            uint256 currentLiquidationThreshold,
+            /*uint256 totalCollateralETH*/,
+            /*uint256 totalDebtETH*/,
+            /*uint256 availableBorrowsETH*/,
+            /*uint256 currentLiquidationThreshold*/,
             uint256 ltv,
             uint256 healthFactor
         ) = LENDING_POOL.getUserAccountData(address(this));
@@ -404,10 +398,10 @@ contract StrategyLeveragedAAVE is BaseStrategy {
     // NOTE: We always borrow max, no fucks given
     function canBorrow() public view returns (uint256) {
         (
-            uint256 totalCollateralETH,
-            uint256 totalDebtETH,
-            uint256 availableBorrowsETH,
-            uint256 currentLiquidationThreshold,
+            /*uint256 totalCollateralETH*/,
+            /*uint256 totalDebtETH*/,
+            /*uint256 availableBorrowsETH*/,
+            /*uint256 currentLiquidationThreshold*/,
             uint256 ltv,
             uint256 healthFactor
         ) = LENDING_POOL.getUserAccountData(address(this));
@@ -470,12 +464,12 @@ contract StrategyLeveragedAAVE is BaseStrategy {
     // returns 95% of the collateral we can withdraw from aave, used to loop and repay debts
     function canRepay() public view returns (uint256) {
         (
-            uint256 totalCollateralETH,
-            uint256 totalDebtETH,
-            uint256 availableBorrowsETH,
+            /*uint256 totalCollateralETH*/,
+            /*uint256 totalDebtETH*/,
+            /*uint256 availableBorrowsETH*/,
             uint256 currentLiquidationThreshold,
-            uint256 ltv,
-            uint256 healthFactor
+            /*uint256 ltv*/,
+            /*uint256 healthFactor*/
         ) = LENDING_POOL.getUserAccountData(address(this));
 
         uint256 aBalance = deposited();

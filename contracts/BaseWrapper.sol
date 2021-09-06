@@ -154,11 +154,10 @@ abstract contract BaseWrapper {
         VaultAPI _bestVault = bestVault();
 
         if (pullFunds) {
-            if (amount != DEPOSIT_EVERYTHING) {
-                token.safeTransferFrom(depositor, address(this), amount);
-            } else {
-                token.safeTransferFrom(depositor, address(this), token.balanceOf(depositor));
+            if (amount == DEPOSIT_EVERYTHING) {
+                amount = token.balanceOf(depositor);
             }
+            token.safeTransferFrom(depositor, address(this), amount);
         }
 
         if (token.allowance(address(this), address(_bestVault)) < amount) {

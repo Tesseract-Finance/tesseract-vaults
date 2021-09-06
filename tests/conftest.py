@@ -15,12 +15,6 @@ PACKAGE_VERSION = yaml.safe_load(
 VAULT_SOURCE_CODE = (Path(__file__).parents[1] / "contracts/Vault.vy").read_text()
 
 
-def approx(a, b, precision=1e-10):
-    if a == b == 0:
-        return True
-    return 2 * abs(a - b) / (a + b) <= precision
-
-
 def arg_types(args):
     # NOTE: Struct compatibility between Vyper and Solidity
     if len(args) == 1 and "components" in args[0]:
@@ -32,22 +26,6 @@ def arg_types(args):
         {k: v for k, v in arg.items() if k not in ("internalType", "name")}
         for arg in args
     ]
-
-
-@pytest.fixture(scope="module")
-def tesr_token(TesrToken, accounts):
-    yield TesrToken.deploy("TESR Token", "TESR", 18, {"from": accounts[0]})
-
-
-@pytest.fixture(scope="module")
-def voting_escrow(VotingEscrow, accounts, tesr_token):
-    yield VotingEscrow.deploy(
-        tesr_token,
-        "Voting-escrowed TESR",
-        "veTESR",
-        "veTESR_0.1",
-        {"from": accounts[0]},
-    )
 
 
 @pytest.fixture
@@ -171,7 +149,7 @@ def sign_vault_permit():
         deadline: int = 0,  # 0 means no time limit
         override_nonce: int = None,
     ):
-        name = "Yearn Vault"
+        name = "Tesseract Vault"
         version = vault.apiVersion()
         if override_nonce:
             nonce = override_nonce

@@ -16,6 +16,10 @@ struct StrategyParams {
     uint256 totalDebt;
     uint256 totalGain;
     uint256 totalLoss;
+    bool enforceChangeLimit;
+    uint256 profitLimitRatio;
+    uint256 lossLimitRatio;
+    address customCheck;
 }
 
 interface VaultAPI is IERC20 {
@@ -160,8 +164,8 @@ interface StrategyAPI {
 }
 
 /**
- * @title Yearn Base Strategy
- * @author yearn.finance
+ * @title Tesseract Base Strategy
+ * @author Tesseract finance
  * @notice
  *  BaseStrategy implements all of the required functionality to interoperate
  *  closely with the Vault contract. This contract should be inherited and the
@@ -189,7 +193,7 @@ abstract contract BaseStrategy {
      * @return A string which holds the current API version of this contract.
      */
     function apiVersion() public pure returns (string memory) {
-        return "0.4.2";
+        return "0.4.3";
     }
 
     /**
@@ -205,16 +209,16 @@ abstract contract BaseStrategy {
     /**
      * @notice
      *  The amount (priced in want) of the total assets managed by this strategy should not count
-     *  towards Yearn's TVL calculations.
+     *  towards TESRS's TVL calculations.
      * @dev
      *  You can override this field to set it to a non-zero value if some of the assets of this
-     *  Strategy is somehow delegated inside another part of of Yearn's ecosystem e.g. another Vault.
+     *  Strategy is somehow delegated inside another part of of TESR's ecosystem e.g. another Vault.
      *  Note that this value must be strictly less than or equal to the amount provided by
      *  `estimatedTotalAssets()` below, as the TVL calc will be total assets minus delegated assets.
      *  Also note that this value is used to determine the total assets under management by this
      *  strategy, for the purposes of computing the management fee in `Vault`
      * @return
-     *  The amount of assets this strategy manages that should not be included in Yearn's Total Value
+     *  The amount of assets this strategy manages that should not be included in TESR's Total Value
      *  Locked (TVL) calculation across it's ecosystem.
      */
     function delegatedAssets() external view virtual returns (uint256) {
@@ -301,6 +305,11 @@ abstract contract BaseStrategy {
                 msg.sender == vault.management(),
             "!authorized"
         );
+        _;
+    }
+
+    modifier onlyVaultManagers() {
+        require(msg.sender == vault.management() || msg.sender == governance(), "!authorized");
         _;
     }
 
@@ -488,13 +497,13 @@ abstract contract BaseStrategy {
      *  Care must be taken when working with decimals to assure that the conversion
      *  is compatible. As an example:
      *
-     *      given 1e17 wei (0.1 ETH) as input, and want is USDC (6 decimals),
-     *      with USDC/ETH = 1800, this should give back 1800000000 (180 USDC)
+     *      given 1e17 wei (0.1 MATIC) as input, and want is USDC (6 decimals),
+     *      with USDC/MATIC = 1800, this should give back 1800000000 (180 USDC)
      *
-     * @param _amtInWei The amount (in wei/1e-18 ETH) to convert to `want`
-     * @return The amount in `want` of `_amtInEth` converted to `want`
+     * @param _amtInWei The amount (in wei/1e-18 MATIC) to convert to `want`
+     * @return The amount in `want` of `_amtInMATIC` converted to `want`
      **/
-    function ethToWant(uint256 _amtInWei) public view virtual returns (uint256);
+    function maticToWant(uint256 _amtInWei) public view virtual returns (uint256);
 
     /**
      * @notice
@@ -607,9 +616,9 @@ abstract contract BaseStrategy {
      *  the only consideration into issuing this trigger, for example if the
      *  position would be negatively affected if `tend()` is not called
      *  shortly, then this can return `true` even if the keeper might be
-     *  "at a loss" (keepers are always reimbursed by Yearn).
+     *  "at a loss".
      * @dev
-     *  `callCostInWei` must be priced in terms of `wei` (1e-18 ETH).
+     *  `callCostInWei` must be priced in terms of `wei` (1e-18 MATIC).
      *
      *  This call and `harvestTrigger()` should never return `true` at the same
      *  time.
@@ -620,7 +629,9 @@ abstract contract BaseStrategy {
         // We usually don't need tend, but if there are positions that need
         // active maintainence, overriding this function is how you would
         // signal for that.
-        uint256 callCost = ethToWant(callCostInWei);
+        // If your implementation uses the cost of the call in want, you can
+        // use uint256 callCost = ethToWant(callCostInWei);
+
         return false;
     }
 
@@ -647,9 +658,9 @@ abstract contract BaseStrategy {
      *  the only consideration into issuing this trigger, for example if the
      *  position would be negatively affected if `harvest()` is not called
      *  shortly, then this can return `true` even if the keeper might be "at a
-     *  loss" (keepers are always reimbursed by Yearn).
+     *  loss".
      * @dev
-     *  `callCostInWei` must be priced in terms of `wei` (1e-18 ETH).
+     *  `callCostInWei` must be priced in terms of `wei` (1e-18 MATIC).
      *
      *  This call and `tendTrigger` should never return `true` at the
      *  same time.
@@ -660,16 +671,11 @@ abstract contract BaseStrategy {
      *  with the parameters reported to the Vault (see `params`) to determine
      *  if calling `harvest()` is merited.
      *
-     *  It is expected that an external system will check `harvestTrigger()`.
-     *  This could be a script run off a desktop or cloud bot (e.g.
-     *  https://github.com/iearn-finance/yearn-vaults/blob/master/scripts/keep.py),
-     *  or via an integration with the Keep3r network (e.g.
-     *  https://github.com/Macarse/GenericKeep3rV2/blob/master/contracts/keep3r/GenericKeep3rV2.sol).
      * @param callCostInWei The keeper's estimated gas cost to call `harvest()` (in wei).
      * @return `true` if `harvest()` should be called, `false` otherwise.
      */
     function harvestTrigger(uint256 callCostInWei) public view virtual returns (bool) {
-        uint256 callCost = ethToWant(callCostInWei);
+        uint256 callCost = maticToWant(callCostInWei);
         StrategyParams memory params = vault.strategies(address(this));
 
         // Should not trigger if Strategy is not activated

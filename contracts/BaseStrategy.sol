@@ -503,7 +503,7 @@ abstract contract BaseStrategy {
      * @param _amtInWei The amount (in wei/1e-18 MATIC) to convert to `want`
      * @return The amount in `want` of `_amtInMATIC` converted to `want`
      **/
-    function maticToWant(uint256 _amtInWei) public view virtual returns (uint256);
+    function nativeToWant(uint256 _amtInWei) public view virtual returns (uint256);
 
     /**
      * @notice
@@ -675,7 +675,7 @@ abstract contract BaseStrategy {
      * @return `true` if `harvest()` should be called, `false` otherwise.
      */
     function harvestTrigger(uint256 callCostInWei) public view virtual returns (bool) {
-        uint256 callCost = maticToWant(callCostInWei);
+        uint256 callCost = nativeToWant(callCostInWei);
         StrategyParams memory params = vault.strategies(address(this));
 
         // Should not trigger if Strategy is not activated

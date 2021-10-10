@@ -53,7 +53,7 @@ contract TestStrategy is BaseStrategyInitializable {
         want = _want;
     }
 
-    function maticToWant(uint256 amtInWei) public view override returns (uint256) {
+    function nativeToWant(uint256 amtInWei) public view override returns (uint256) {
         return amtInWei; // 1:1 conversion for testing
     }
 

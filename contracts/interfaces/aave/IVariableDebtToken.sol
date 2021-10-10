@@ -18,12 +18,7 @@ interface IVariableDebtToken is IERC20, IScaledBalanceToken {
      * @param value The amount to be minted
      * @param index The last index of the reserve
      **/
-    event Mint(
-        address indexed from,
-        address indexed onBehalfOf,
-        uint256 value,
-        uint256 index
-    );
+    event Mint(address indexed from, address indexed onBehalfOf, uint256 value, uint256 index);
 
     /**
      * @dev Mints debt token to the `onBehalfOf` address
@@ -63,8 +58,5 @@ interface IVariableDebtToken is IERC20, IScaledBalanceToken {
     /**
      * @dev Returns the address of the incentives controller contract
      **/
-    function getIncentivesController()
-        external
-        view
-        returns (IAaveIncentivesController);
+    function getIncentivesController() external view returns (IAaveIncentivesController);
 }

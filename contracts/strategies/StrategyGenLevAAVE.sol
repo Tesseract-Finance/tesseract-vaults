@@ -6,20 +6,13 @@ pragma solidity >=0.6.0 <0.7.0;
 pragma experimental ABIEncoderV2;
 
 // These are the core Yearn libraries
-import {
-    BaseStrategyInitializable
-} from "../BaseStrategy.sol";
+import {BaseStrategyInitializable} from "../BaseStrategy.sol";
 
-import {
-    SafeERC20,
-    SafeMath,
-    IERC20,
-    Address
-} from "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
+import {SafeERC20, SafeMath, IERC20, Address} from "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 
 import "@openzeppelin/contracts/math/Math.sol";
 
-import { IUniLikeSwapRouter } from "../interfaces/IUniLikeSwapRouter.sol";
+import {IUniLikeSwapRouter} from "../interfaces/IUniLikeSwapRouter.sol";
 
 import "../interfaces/aave/IProtocolDataProvider.sol";
 import "../interfaces/aave/IAaveIncentivesController.sol";
@@ -33,12 +26,9 @@ contract StrategyGenLevAAVE is BaseStrategyInitializable {
     using SafeMath for uint256;
 
     // AAVE protocol address
-    IProtocolDataProvider private constant protocolDataProvider =
-        IProtocolDataProvider(0x7551b5D2763519d4e37e8B81929D336De671d46d);
-    IAaveIncentivesController private constant incentivesController =
-        IAaveIncentivesController(0x357D51124f59836DeD84c8a1730D72B749d8BC23);
-    ILendingPool private constant lendingPool =
-        ILendingPool(0x8dFf5E27EA6b7AC08EbFdf9eB090F32ee9a30fcf);
+    IProtocolDataProvider private constant protocolDataProvider = IProtocolDataProvider(0x7551b5D2763519d4e37e8B81929D336De671d46d);
+    IAaveIncentivesController private constant incentivesController = IAaveIncentivesController(0x357D51124f59836DeD84c8a1730D72B749d8BC23);
+    ILendingPool private constant lendingPool = ILendingPool(0x8dFf5E27EA6b7AC08EbFdf9eB090F32ee9a30fcf);
 
     address private constant rewardToken = 0x0d500B1d8E8eF31E21C99d1Db9A6444d3ADf1270;
     address private constant wrappedNative = 0x0d500B1d8E8eF31E21C99d1Db9A6444d3ADf1270;
@@ -48,10 +38,8 @@ contract StrategyGenLevAAVE is BaseStrategyInitializable {
     IVariableDebtToken public debtToken;
 
     // SWAP routers
-    IUniLikeSwapRouter private PRIMARY_ROUTER =
-        IUniLikeSwapRouter(0xa5E0829CaCEd8fFDD4De3c43696c57F7D7A678ff);
-    IUniLikeSwapRouter private SECONDARY_ROUTER =
-        IUniLikeSwapRouter(0x1b02dA8Cb0d097eB8D57A175b88c7D8b47997506);
+    IUniLikeSwapRouter private PRIMARY_ROUTER = IUniLikeSwapRouter(0xa5E0829CaCEd8fFDD4De3c43696c57F7D7A678ff);
+    IUniLikeSwapRouter private SECONDARY_ROUTER = IUniLikeSwapRouter(0x1b02dA8Cb0d097eB8D57A175b88c7D8b47997506);
 
     // OPS State Variables
     uint256 private constant DEFAULT_COLLAT_TARGET_MARGIN = 0.02 ether;
@@ -110,16 +98,13 @@ contract StrategyGenLevAAVE is BaseStrategyInitializable {
         swapRouter = SwapRouter.Primary;
 
         // Set aave tokens
-        (address _aToken, , address _debtToken) =
-            protocolDataProvider.getReserveTokensAddresses(address(want));
+        (address _aToken, , address _debtToken) = protocolDataProvider.getReserveTokensAddresses(address(want));
         aToken = IAToken(_aToken);
         debtToken = IVariableDebtToken(_debtToken);
 
         // Let collateral targets
         (uint256 ltv, uint256 liquidationThreshold) = getProtocolCollatRatios();
-        targetCollatRatio = liquidationThreshold.sub(
-            DEFAULT_COLLAT_TARGET_MARGIN
-        );
+        targetCollatRatio = liquidationThreshold.sub(DEFAULT_COLLAT_TARGET_MARGIN);
         maxCollatRatio = liquidationThreshold.sub(DEFAULT_COLLAT_MAX_MARGIN);
         maxBorrowCollatRatio = ltv.sub(DEFAULT_COLLAT_MAX_MARGIN);
 
@@ -178,14 +163,8 @@ contract StrategyGenLevAAVE is BaseStrategyInitializable {
         maxIterations = _maxIterations;
     }
 
-    function setRewardBehavior(
-        SwapRouter _swapRouter,
-        uint256 _minRewardToSell
-    ) external onlyVaultManagers {
-        require(
-            _swapRouter == SwapRouter.Primary ||
-            _swapRouter == SwapRouter.Secondary
-        );
+    function setRewardBehavior(SwapRouter _swapRouter, uint256 _minRewardToSell) external onlyVaultManagers {
+        require(_swapRouter == SwapRouter.Primary || _swapRouter == SwapRouter.Secondary);
         if (_swapRouter == SwapRouter.Secondary) {
             require(address(SECONDARY_ROUTER) != address(0));
         }
@@ -198,18 +177,14 @@ contract StrategyGenLevAAVE is BaseStrategyInitializable {
     }
 
     function estimatedTotalAssets() public view override returns (uint256) {
-        uint256 balanceExcludingRewards =
-            balanceOfWant().add(getCurrentSupply());
+        uint256 balanceExcludingRewards = balanceOfWant().add(getCurrentSupply());
 
         // if we don't have a position, don't worry about rewards
         if (balanceExcludingRewards < minWant) {
             return balanceExcludingRewards;
         }
 
-        uint256 rewards =
-            estimatedRewardsInWant().mul(MAX_BPS.sub(PESSIMISM_FACTOR)).div(
-                MAX_BPS
-            );
+        uint256 rewards = estimatedRewardsInWant().mul(MAX_BPS.sub(PESSIMISM_FACTOR)).div(MAX_BPS);
 
         return balanceExcludingRewards.add(rewards);
     }
@@ -217,11 +192,7 @@ contract StrategyGenLevAAVE is BaseStrategyInitializable {
     function estimatedRewardsInWant() public view returns (uint256) {
         uint256 rewardTokenBalance = balanceOfRewardToken();
 
-        uint256 pendingRewards =
-            incentivesController.getRewardsBalance(
-                getAaveAssets(),
-                address(this)
-            );
+        uint256 pendingRewards = incentivesController.getRewardsBalance(getAaveAssets(), address(this));
 
         if (rewardToken == address(want)) {
             return pendingRewards;
@@ -231,13 +202,13 @@ contract StrategyGenLevAAVE is BaseStrategyInitializable {
     }
 
     function prepareReturn(uint256 _debtOutstanding)
-    internal
-    override
-    returns (
-        uint256 _profit,
-        uint256 _loss,
-        uint256 _debtPayment
-    )
+        internal
+        override
+        returns (
+            uint256 _profit,
+            uint256 _loss,
+            uint256 _debtPayment
+        )
     {
         // claim & sell rewards
         _claimAndSellRewards();
@@ -308,10 +279,7 @@ contract StrategyGenLevAAVE is BaseStrategyInitializable {
 
         uint256 wantBalance = balanceOfWant();
         // deposit available want as collateral
-        if (
-            wantBalance > _debtOutstanding &&
-            wantBalance.sub(_debtOutstanding) > minWant
-        ) {
+        if (wantBalance > _debtOutstanding && wantBalance.sub(_debtOutstanding) > minWant) {
             _depositCollateral(wantBalance.sub(_debtOutstanding));
             // we update the value
             wantBalance = balanceOfWant();
@@ -335,21 +303,13 @@ contract StrategyGenLevAAVE is BaseStrategyInitializable {
         } else if (currentCollatRatio > targetCollatRatio) {
             if (currentCollatRatio.sub(targetCollatRatio) > minRatio) {
                 (uint256 deposits, uint256 borrows) = getCurrentPosition();
-                uint256 newBorrow =
-                getBorrowFromSupply(
-                    deposits.sub(borrows),
-                    targetCollatRatio
-                );
+                uint256 newBorrow = getBorrowFromSupply(deposits.sub(borrows), targetCollatRatio);
                 _leverDownTo(newBorrow, borrows);
             }
         }
     }
 
-    function liquidatePosition(uint256 _amountNeeded)
-    internal
-    override
-    returns (uint256 _liquidatedAmount, uint256 _loss)
-    {
+    function liquidatePosition(uint256 _amountNeeded) internal override returns (uint256 _liquidatedAmount, uint256 _loss) {
         // NOTE: Maintain invariant `want.balanceOf(this) >= _liquidatedAmount`
         // NOTE: Maintain invariant `_liquidatedAmount + _loss <= _amountNeeded`
         uint256 wantBalance = balanceOfWant();
@@ -385,15 +345,10 @@ contract StrategyGenLevAAVE is BaseStrategyInitializable {
             return true;
         }
 
-        return (liquidationThreshold.sub(currentCollatRatio) <=
-        LIQUIDATION_WARNING_THRESHOLD);
+        return (liquidationThreshold.sub(currentCollatRatio) <= LIQUIDATION_WARNING_THRESHOLD);
     }
 
-    function liquidateAllPositions()
-    internal
-    override
-    returns (uint256 _amountFreed)
-    {
+    function liquidateAllPositions() internal override returns (uint256 _amountFreed) {
         (_amountFreed, ) = liquidatePosition(type(uint256).max);
     }
 
@@ -401,12 +356,7 @@ contract StrategyGenLevAAVE is BaseStrategyInitializable {
         require(getCurrentSupply() < minWant);
     }
 
-    function protectedTokens()
-    internal
-    view
-    override
-    returns (address[] memory)
-    {}
+    function protectedTokens() internal view override returns (address[] memory) {}
 
     //emergency function that we can use to deleverage manually if something is broken
     function manualDeleverage(uint256 amount) external onlyVaultManagers {
@@ -428,11 +378,7 @@ contract StrategyGenLevAAVE is BaseStrategyInitializable {
 
     function _claimAndSellRewards() internal {
         // claim the rewards
-        incentivesController.claimRewards(
-            getAaveAssets(),
-            type(uint256).max,
-            address(this)
-        );
+        incentivesController.claimRewards(getAaveAssets(), type(uint256).max, address(this));
 
         if (rewardToken != address(want)) {
             uint256 rewardTokenBalance = balanceOfRewardToken();
@@ -468,14 +414,8 @@ contract StrategyGenLevAAVE is BaseStrategyInitializable {
         uint256 newBorrow = getBorrowFromSupply(realSupply, targetCollatRatio);
         uint256 totalAmountToBorrow = newBorrow.sub(borrows);
 
-        for (
-            uint8 i = 0;
-            i < maxIterations && totalAmountToBorrow > minWant;
-            i++
-        ) {
-            totalAmountToBorrow = totalAmountToBorrow.sub(
-                _leverUpStep(totalAmountToBorrow)
-            );
+        for (uint8 i = 0; i < maxIterations && totalAmountToBorrow > minWant; i++) {
+            totalAmountToBorrow = totalAmountToBorrow.sub(_leverUpStep(totalAmountToBorrow));
         }
     }
 
@@ -488,11 +428,7 @@ contract StrategyGenLevAAVE is BaseStrategyInitializable {
 
         // calculate how much borrow can I take
         (uint256 deposits, uint256 borrows) = getCurrentPosition();
-        uint256 canBorrow =
-        getBorrowFromDeposit(
-            deposits.add(wantBalance),
-            maxBorrowCollatRatio
-        );
+        uint256 canBorrow = getBorrowFromDeposit(deposits.add(wantBalance), maxBorrowCollatRatio);
 
         if (canBorrow <= borrows) {
             return 0;
@@ -520,11 +456,7 @@ contract StrategyGenLevAAVE is BaseStrategyInitializable {
 
         uint256 totalRepayAmount = currentBorrowed.sub(newAmountBorrowed);
 
-        for (
-            uint8 i = 0;
-            i < maxIterations && totalRepayAmount > minWant;
-            i++
-        ) {
+        for (uint8 i = 0; i < maxIterations && totalRepayAmount > minWant; i++) {
             uint256 toRepay = totalRepayAmount;
             uint256 wantBalance = balanceOfWant();
             if (toRepay > wantBalance) {
@@ -538,8 +470,7 @@ contract StrategyGenLevAAVE is BaseStrategyInitializable {
 
         // deposit back to get targetCollatRatio (we always need to leave this in this ratio)
         (uint256 deposits, uint256 borrows) = getCurrentPosition();
-        uint256 targetDeposit =
-        getDepositFromBorrow(borrows, targetCollatRatio);
+        uint256 targetDeposit = getDepositFromBorrow(borrows, targetCollatRatio);
         if (targetDeposit > deposits) {
             uint256 toDeposit = targetDeposit.sub(deposits);
             if (toDeposit > minWant) {
@@ -599,26 +530,16 @@ contract StrategyGenLevAAVE is BaseStrategyInitializable {
         return IERC20(rewardToken).balanceOf(address(this));
     }
 
-    function getCurrentPosition()
-    public
-    view
-    returns (uint256 deposits, uint256 borrows)
-    {
+    function getCurrentPosition() public view returns (uint256 deposits, uint256 borrows) {
         deposits = balanceOfAToken();
         borrows = balanceOfDebtToken();
     }
 
-    function getCurrentCollatRatio()
-    public
-    view
-    returns (uint256 currentCollatRatio)
-    {
+    function getCurrentCollatRatio() public view returns (uint256 currentCollatRatio) {
         (uint256 deposits, uint256 borrows) = getCurrentPosition();
 
         if (deposits > 0) {
-            currentCollatRatio = borrows.mul(COLLATERAL_RATIO_PRECISION).div(
-                deposits
-            );
+            currentCollatRatio = borrows.mul(COLLATERAL_RATIO_PRECISION).div(deposits);
         }
     }
 
@@ -628,44 +549,25 @@ contract StrategyGenLevAAVE is BaseStrategyInitializable {
     }
 
     // conversions
-    function tokenToWant(address token, uint256 amount)
-    internal
-    view
-    returns (uint256)
-    {
+    function tokenToWant(address token, uint256 amount) internal view returns (uint256) {
         if (amount == 0 || address(want) == token) {
             return amount;
         }
 
         // KISS: just use a v2 router for quotes which aren't used in critical logic
-        IUniLikeSwapRouter router =
-            swapRouter == SwapRouter.Primary ? PRIMARY_ROUTER : SECONDARY_ROUTER;
+        IUniLikeSwapRouter router = swapRouter == SwapRouter.Primary ? PRIMARY_ROUTER : SECONDARY_ROUTER;
 
-        uint256[] memory amounts =
-            router.getAmountsOut(
-                amount,
-                getTokenOutPathV2(token, address(want))
-            );
+        uint256[] memory amounts = router.getAmountsOut(amount, getTokenOutPathV2(token, address(want)));
 
         return amounts[amounts.length - 1];
     }
 
-    function nativeToWant(uint256 _amtInWei)
-    public
-    view
-    override
-    returns (uint256)
-    {
+    function nativeToWant(uint256 _amtInWei) public view override returns (uint256) {
         return tokenToWant(wrappedNative, _amtInWei);
     }
 
-    function getTokenOutPathV2(address _token_in, address _token_out)
-    internal
-    pure
-    returns (address[] memory _path)
-    {
-        bool is_wrapped_native =
-            _token_in == address(wrappedNative) || _token_out == address(wrappedNative);
+    function getTokenOutPathV2(address _token_in, address _token_out) internal pure returns (address[] memory _path) {
+        bool is_wrapped_native = _token_in == address(wrappedNative) || _token_out == address(wrappedNative);
 
         _path = new address[](is_wrapped_native ? 2 : 3);
         _path[0] = _token_in;
@@ -683,16 +585,9 @@ contract StrategyGenLevAAVE is BaseStrategyInitializable {
             return;
         }
 
-        IUniLikeSwapRouter router =
-            swapRouter == SwapRouter.Primary ? PRIMARY_ROUTER : SECONDARY_ROUTER;
+        IUniLikeSwapRouter router = swapRouter == SwapRouter.Primary ? PRIMARY_ROUTER : SECONDARY_ROUTER;
 
-        router.swapExactTokensForTokens(
-            amountIn,
-            minOut,
-            getTokenOutPathV2(address(rewardToken), address(want)),
-            address(this),
-            now
-        );
+        router.swapExactTokensForTokens(amountIn, minOut, getTokenOutPathV2(address(rewardToken), address(want)), address(this), now);
     }
 
     function getAaveAssets() internal view returns (address[] memory assets) {
@@ -701,43 +596,23 @@ contract StrategyGenLevAAVE is BaseStrategyInitializable {
         assets[1] = address(debtToken);
     }
 
-    function getProtocolCollatRatios()
-    internal
-    view
-    returns (uint256 ltv, uint256 liquidationThreshold)
-    {
-        (, ltv, liquidationThreshold, , , , , , , ) =
-            protocolDataProvider.getReserveConfigurationData(address(want));
+    function getProtocolCollatRatios() internal view returns (uint256 ltv, uint256 liquidationThreshold) {
+        (, ltv, liquidationThreshold, , , , , , , ) = protocolDataProvider.getReserveConfigurationData(address(want));
         // convert bps to wad
         ltv = ltv.mul(BPS_WAD_RATIO);
         liquidationThreshold = liquidationThreshold.mul(BPS_WAD_RATIO);
     }
 
-    function getBorrowFromDeposit(uint256 deposit, uint256 collatRatio)
-    internal
-    pure
-    returns (uint256)
-    {
+    function getBorrowFromDeposit(uint256 deposit, uint256 collatRatio) internal pure returns (uint256) {
         return deposit.mul(collatRatio).div(COLLATERAL_RATIO_PRECISION);
     }
 
-    function getDepositFromBorrow(uint256 borrow, uint256 collatRatio)
-    internal
-    pure
-    returns (uint256)
-    {
+    function getDepositFromBorrow(uint256 borrow, uint256 collatRatio) internal pure returns (uint256) {
         return borrow.mul(COLLATERAL_RATIO_PRECISION).div(collatRatio);
     }
 
-    function getBorrowFromSupply(uint256 supply, uint256 collatRatio)
-    internal
-    pure
-    returns (uint256)
-    {
-        return
-        supply.mul(collatRatio).div(
-            COLLATERAL_RATIO_PRECISION.sub(collatRatio)
-        );
+    function getBorrowFromSupply(uint256 supply, uint256 collatRatio) internal pure returns (uint256) {
+        return supply.mul(collatRatio).div(COLLATERAL_RATIO_PRECISION.sub(collatRatio));
     }
 
     function approveMaxSpend(address token, address spender) internal {

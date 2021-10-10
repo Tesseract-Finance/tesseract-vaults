@@ -34,12 +34,7 @@ interface IAToken is IERC20, IScaledBalanceToken, IInitializableAToken {
      * @param value The amount being burned
      * @param index The new liquidity index of the reserve
      **/
-    event Burn(
-        address indexed from,
-        address indexed target,
-        uint256 value,
-        uint256 index
-    );
+    event Burn(address indexed from, address indexed target, uint256 value, uint256 index);
 
     /**
      * @dev Emitted during the transfer action
@@ -48,12 +43,7 @@ interface IAToken is IERC20, IScaledBalanceToken, IInitializableAToken {
      * @param value The amount being transferred
      * @param index The new liquidity index of the reserve
      **/
-    event BalanceTransfer(
-        address indexed from,
-        address indexed to,
-        uint256 value,
-        uint256 index
-    );
+    event BalanceTransfer(address indexed from, address indexed to, uint256 value, uint256 index);
 
     /**
      * @dev Burns aTokens from `user` and sends the equivalent amount of underlying to `receiverOfUnderlying`
@@ -95,9 +85,7 @@ interface IAToken is IERC20, IScaledBalanceToken, IInitializableAToken {
      * @param amount The amount getting transferred
      * @return The amount transferred
      **/
-    function transferUnderlyingTo(address user, uint256 amount)
-        external
-        returns (uint256);
+    function transferUnderlyingTo(address user, uint256 amount) external returns (uint256);
 
     /**
      * @dev Invoked to execute actions on the aToken side after a repayment.
@@ -109,10 +97,7 @@ interface IAToken is IERC20, IScaledBalanceToken, IInitializableAToken {
     /**
      * @dev Returns the address of the incentives controller contract
      **/
-    function getIncentivesController()
-        external
-        view
-        returns (IAaveIncentivesController);
+    function getIncentivesController() external view returns (IAaveIncentivesController);
 
     /**
      * @dev Returns the address of the underlying asset of this aToken (E.g. WETH for aWETH)

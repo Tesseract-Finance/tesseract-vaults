@@ -2,9 +2,7 @@
 pragma solidity >=0.6.0 <0.7.0;
 pragma experimental ABIEncoderV2;
 
-import {
-    ILendingPoolAddressesProvider
-} from "./ILendingPoolAddressesProvider.sol";
+import {ILendingPoolAddressesProvider} from "./ILendingPoolAddressesProvider.sol";
 
 interface IProtocolDataProvider {
     struct TokenData {
@@ -12,10 +10,7 @@ interface IProtocolDataProvider {
         address tokenAddress;
     }
 
-    function ADDRESSES_PROVIDER()
-        external
-        view
-        returns (ILendingPoolAddressesProvider);
+    function ADDRESSES_PROVIDER() external view returns (ILendingPoolAddressesProvider);
 
     function getAllReservesTokens() external view returns (TokenData[] memory);
 

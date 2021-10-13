@@ -87,7 +87,7 @@ contract StrategyGenLevAAVE is BaseStrategyInitializable {
         require(address(aToken) == address(0));
 
         // initialize operational state
-        maxIterations = 16;
+        maxIterations = 8;
 
         // mins
         minWant = 100;
@@ -124,13 +124,8 @@ contract StrategyGenLevAAVE is BaseStrategyInitializable {
         }
     }
 
-    function setReferralCode(uint16 _referral) external onlyVaultManagers {
+    function setReferralCode(uint16 _referral) external onlyGovernance {
         referral = _referral;
-    }
-
-    function setRouters(address _primaryRouter, address _secondaryRouter) external onlyVaultManagers {
-        PRIMARY_ROUTER = IUniLikeSwapRouter(_primaryRouter);
-        SECONDARY_ROUTER = IUniLikeSwapRouter(_secondaryRouter);
     }
 
     // SETTERS

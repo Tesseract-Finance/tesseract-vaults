@@ -6,7 +6,7 @@ pragma solidity >=0.6.0 <0.7.0;
 pragma experimental ABIEncoderV2;
 
 // These are the core Yearn libraries
-import {BaseStrategyInitializable} from "../BaseStrategy.sol";
+import { BaseStrategy } from "../BaseStrategy.sol";
 
 import {SafeERC20, SafeMath, IERC20, Address} from "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 
@@ -20,7 +20,7 @@ import "../interfaces/aave/IAToken.sol";
 import "../interfaces/aave/IVariableDebtToken.sol";
 import "../interfaces/aave/ILendingPool.sol";
 
-contract StrategyGenLevAAVE is BaseStrategyInitializable {
+contract StrategyGenLevAAVE is BaseStrategy {
     using SafeERC20 for IERC20;
     using Address for address;
     using SafeMath for uint256;
@@ -51,15 +51,16 @@ contract StrategyGenLevAAVE is BaseStrategyInitializable {
     uint256 public maxCollatRatio; // Closest to liquidation we'll risk
 
     uint8 public maxIterations;
+    bool public withdrawCheck;
 
-    uint256 public minWant = 100;
-    uint256 public minRatio = 0.005 ether;
-    uint256 public minRewardToSell = 1e15;
+    uint256 public minWant;
+    uint256 public minRatio;
+    uint256 public minRewardToSell;
 
     enum SwapRouter {Primary, Secondary}
     SwapRouter public swapRouter = SwapRouter.Primary;
 
-    bool private alreadyAdjusted = false; // Signal whether a position adjust was done in prepareReturn
+    bool private alreadyAdjusted; // Signal whether a position adjust was done in prepareReturn
 
     uint16 private referral = 0;
 
@@ -69,7 +70,7 @@ contract StrategyGenLevAAVE is BaseStrategyInitializable {
     uint256 private constant PESSIMISM_FACTOR = 1000;
     uint256 private DECIMALS;
 
-    constructor(address _vault) public BaseStrategyInitializable(_vault) {
+    constructor(address _vault) public BaseStrategy(_vault) {
         _initializeThis();
     }
 
@@ -78,7 +79,7 @@ contract StrategyGenLevAAVE is BaseStrategyInitializable {
         address _strategist,
         address _rewards,
         address _keeper
-    ) external override {
+    ) external {
         _initialize(_vault, _strategist, _rewards, _keeper);
         _initializeThis();
     }
@@ -88,6 +89,7 @@ contract StrategyGenLevAAVE is BaseStrategyInitializable {
 
         // initialize operational state
         maxIterations = 8;
+        withdrawCheck = false;
 
         // mins
         minWant = 100;
@@ -103,7 +105,7 @@ contract StrategyGenLevAAVE is BaseStrategyInitializable {
         debtToken = IVariableDebtToken(_debtToken);
 
         // Let collateral targets
-        (uint256 ltv, uint256 liquidationThreshold) = getProtocolCollatRatios();
+        (uint256 ltv, uint256 liquidationThreshold) = getProtocolCollatRatios(address(want));
         targetCollatRatio = liquidationThreshold.sub(DEFAULT_COLLAT_TARGET_MARGIN);
         maxCollatRatio = liquidationThreshold.sub(DEFAULT_COLLAT_MAX_MARGIN);
         maxBorrowCollatRatio = ltv.sub(DEFAULT_COLLAT_MAX_MARGIN);
@@ -134,7 +136,7 @@ contract StrategyGenLevAAVE is BaseStrategyInitializable {
         uint256 _maxCollatRatio,
         uint256 _maxBorrowCollatRatio
     ) external onlyVaultManagers {
-        (uint256 ltv, uint256 liquidationThreshold) = getProtocolCollatRatios();
+        (uint256 ltv, uint256 liquidationThreshold) = getProtocolCollatRatios(address(want));
 
         require(_targetCollatRatio < liquidationThreshold);
         require(_maxCollatRatio < liquidationThreshold);
@@ -144,6 +146,10 @@ contract StrategyGenLevAAVE is BaseStrategyInitializable {
         targetCollatRatio = _targetCollatRatio;
         maxCollatRatio = _maxCollatRatio;
         maxBorrowCollatRatio = _maxBorrowCollatRatio;
+    }
+
+    function setWithdrawCheck(bool _withdrawCheck) external onlyVaultManagers {
+        withdrawCheck = _withdrawCheck;
     }
 
     function setMinsAndMaxs(
@@ -320,9 +326,16 @@ contract StrategyGenLevAAVE is BaseStrategyInitializable {
         uint256 freeAssets = balanceOfWant();
         if (_amountNeeded > freeAssets) {
             _liquidatedAmount = freeAssets;
-            _loss = _amountNeeded.sub(freeAssets);
+            uint256 diff = _amountNeeded.sub(_liquidatedAmount);
+            if (diff <= minWant) {
+                _loss = diff;
+            }
         } else {
             _liquidatedAmount = _amountNeeded;
+        }
+
+        if (withdrawCheck) {
+            require(_amountNeeded == _liquidatedAmount.add(_loss)); // dev: withdraw safety check
         }
     }
 
@@ -332,7 +345,7 @@ contract StrategyGenLevAAVE is BaseStrategyInitializable {
             return false;
         }
         // pull the liquidation liquidationThreshold from aave to be extra safu
-        (, uint256 liquidationThreshold) = getProtocolCollatRatios();
+        (, uint256 liquidationThreshold) = getProtocolCollatRatios(address(want));
 
         uint256 currentCollatRatio = getCurrentCollatRatio();
 
@@ -444,41 +457,40 @@ contract StrategyGenLevAAVE is BaseStrategyInitializable {
     }
 
     function _leverDownTo(uint256 newAmountBorrowed, uint256 currentBorrowed) internal {
-        if (newAmountBorrowed >= currentBorrowed) {
-            // we don't need to repay
-            return;
-        }
+        if (currentBorrowed > newAmountBorrowed) {
+            uint256 totalRepayAmount = currentBorrowed.sub(newAmountBorrowed);
+            uint256 _maxCollatRatio = maxCollatRatio;
 
-        uint256 totalRepayAmount = currentBorrowed.sub(newAmountBorrowed);
-
-        for (uint8 i = 0; i < maxIterations && totalRepayAmount > minWant; i++) {
-            uint256 toRepay = totalRepayAmount;
-            uint256 wantBalance = balanceOfWant();
-            if (toRepay > wantBalance) {
-                toRepay = wantBalance;
+            for (uint8 i = 0; i < maxIterations && totalRepayAmount > minWant; i++) {
+                _withdrawExcessCollateral(_maxCollatRatio);
+                uint256 toRepay = totalRepayAmount;
+                uint256 wantBalance = balanceOfWant();
+                if (toRepay > wantBalance) {
+                    toRepay = wantBalance;
+                }
+                uint256 repaid = _repayWant(toRepay);
+                totalRepayAmount = totalRepayAmount.sub(repaid);
             }
-            uint256 repaid = _repayWant(toRepay);
-            totalRepayAmount = totalRepayAmount.sub(repaid);
-            // withdraw collateral
-            _withdrawExcessCollateral();
         }
 
         // deposit back to get targetCollatRatio (we always need to leave this in this ratio)
         (uint256 deposits, uint256 borrows) = getCurrentPosition();
-        uint256 targetDeposit = getDepositFromBorrow(borrows, targetCollatRatio);
+        uint256 _targetCollatRatio = targetCollatRatio;
+        uint256 targetDeposit = getDepositFromBorrow(borrows, _targetCollatRatio);
+
         if (targetDeposit > deposits) {
             uint256 toDeposit = targetDeposit.sub(deposits);
             if (toDeposit > minWant) {
                 _depositCollateral(Math.min(toDeposit, balanceOfWant()));
             }
+        } else {
+            _withdrawExcessCollateral(_targetCollatRatio);
         }
-
-        return;
     }
 
-    function _withdrawExcessCollateral() internal returns (uint256 amount) {
+    function _withdrawExcessCollateral(uint256 collatRatio) internal returns (uint256 amount) {
         (uint256 deposits, uint256 borrows) = getCurrentPosition();
-        uint256 theoDeposits = getDepositFromBorrow(borrows, maxCollatRatio);
+        uint256 theoDeposits = getDepositFromBorrow(borrows, collatRatio);
         if (deposits > theoDeposits) {
             uint256 toWithdraw = deposits.sub(theoDeposits);
             return _withdrawCollateral(toWithdraw);
@@ -591,8 +603,8 @@ contract StrategyGenLevAAVE is BaseStrategyInitializable {
         assets[1] = address(debtToken);
     }
 
-    function getProtocolCollatRatios() internal view returns (uint256 ltv, uint256 liquidationThreshold) {
-        (, ltv, liquidationThreshold, , , , , , , ) = protocolDataProvider.getReserveConfigurationData(address(want));
+    function getProtocolCollatRatios(address token) internal view returns (uint256 ltv, uint256 liquidationThreshold) {
+        (, ltv, liquidationThreshold, , , , , , , ) = protocolDataProvider.getReserveConfigurationData(token);
         // convert bps to wad
         ltv = ltv.mul(BPS_WAD_RATIO);
         liquidationThreshold = liquidationThreshold.mul(BPS_WAD_RATIO);

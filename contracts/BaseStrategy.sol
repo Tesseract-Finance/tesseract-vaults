@@ -309,10 +309,10 @@ abstract contract BaseStrategy {
     modifier onlyKeepers() {
         require(
             msg.sender == keeper ||
-            msg.sender == strategist ||
-            msg.sender == governance() ||
-            msg.sender == vault.guardian() ||
-            msg.sender == vault.management(),
+                msg.sender == strategist ||
+                msg.sender == governance() ||
+                msg.sender == vault.guardian() ||
+                msg.sender == vault.management(),
             "!authorized"
         );
         _;
@@ -586,13 +586,13 @@ abstract contract BaseStrategy {
      * See `vault.debtOutstanding()`.
      */
     function prepareReturn(uint256 _debtOutstanding)
-    internal
-    virtual
-    returns (
-        uint256 _profit,
-        uint256 _loss,
-        uint256 _debtPayment
-    );
+        internal
+        virtual
+        returns (
+            uint256 _profit,
+            uint256 _loss,
+            uint256 _debtPayment
+        );
 
     /**
      * Perform any adjustments to the core position(s) of this Strategy given

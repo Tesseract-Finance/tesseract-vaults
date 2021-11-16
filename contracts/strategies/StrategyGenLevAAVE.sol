@@ -6,7 +6,7 @@ pragma solidity >=0.6.0 <0.7.0;
 pragma experimental ABIEncoderV2;
 
 // These are the core Yearn libraries
-import {BaseStrategy} from "../BaseStrategy.sol";
+import {BaseStrategyInitializable} from "../BaseStrategy.sol";
 
 import {SafeERC20, SafeMath, IERC20, Address} from "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 
@@ -20,7 +20,7 @@ import "../interfaces/aave/IAToken.sol";
 import "../interfaces/aave/IVariableDebtToken.sol";
 import "../interfaces/aave/ILendingPool.sol";
 
-contract StrategyGenLevAAVE is BaseStrategy {
+contract StrategyGenLevAAVE is BaseStrategyInitializable {
     using SafeERC20 for IERC20;
     using Address for address;
     using SafeMath for uint256;
@@ -51,7 +51,6 @@ contract StrategyGenLevAAVE is BaseStrategy {
     uint256 public maxCollatRatio; // Closest to liquidation we'll risk
 
     uint8 public maxIterations;
-    bool public withdrawCheck;
 
     uint256 public minWant;
     uint256 public minRatio;
@@ -70,7 +69,7 @@ contract StrategyGenLevAAVE is BaseStrategy {
     uint256 private constant PESSIMISM_FACTOR = 1000;
     uint256 private DECIMALS;
 
-    constructor(address _vault) public BaseStrategy(_vault) {
+    constructor(address _vault) public BaseStrategyInitializable(_vault) {
         _initializeThis();
     }
 
@@ -79,7 +78,7 @@ contract StrategyGenLevAAVE is BaseStrategy {
         address _strategist,
         address _rewards,
         address _keeper
-    ) external {
+    ) external override {
         _initialize(_vault, _strategist, _rewards, _keeper);
         _initializeThis();
     }
@@ -89,7 +88,6 @@ contract StrategyGenLevAAVE is BaseStrategy {
 
         // initialize operational state
         maxIterations = 8;
-        withdrawCheck = false;
 
         // mins
         minWant = 100;
@@ -146,10 +144,6 @@ contract StrategyGenLevAAVE is BaseStrategy {
         targetCollatRatio = _targetCollatRatio;
         maxCollatRatio = _maxCollatRatio;
         maxBorrowCollatRatio = _maxBorrowCollatRatio;
-    }
-
-    function setWithdrawCheck(bool _withdrawCheck) external onlyVaultManagers {
-        withdrawCheck = _withdrawCheck;
     }
 
     function setMinsAndMaxs(
@@ -332,10 +326,6 @@ contract StrategyGenLevAAVE is BaseStrategy {
             }
         } else {
             _liquidatedAmount = _amountNeeded;
-        }
-
-        if (withdrawCheck) {
-            require(_amountNeeded == _liquidatedAmount.add(_loss)); // dev: withdraw safety check
         }
     }
 

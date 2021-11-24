@@ -3,7 +3,7 @@ name: Test
 on:
   push:
     branches:
-    - main
+    - master
     - develop
   pull_request:
 
@@ -66,7 +66,7 @@ jobs:
       with:
         path: .test_durations
         key: ${{ runner.os }}-${{ steps.get-month.outputs.date }}-test-durations-cache-
-  
+
     - name: Check file existence
       id: check_test_durations
       uses: andstor/file-existence-action@v1
@@ -79,15 +79,15 @@ jobs:
 
     - name: Install python dependencies
       run: pip install -r requirements-dev.txt
-    
-    - name: Install pytest-split 
+
+    - name: Install pytest-split
       run: pip install pytest-split
 
     - name: Compile Code
       run: brownie compile --size
 
     - name: Run Splitted Tests
-      if: steps.check_test_durations.outputs.files_exists == 'true' 
+      if: steps.check_test_durations.outputs.files_exists == 'true'
       run: brownie test tests/functional --gas --coverage --splits 6 --group ${{ matrix.group }};
 
     - name: Run build test_duration

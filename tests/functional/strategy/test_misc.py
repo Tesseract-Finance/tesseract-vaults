@@ -13,6 +13,7 @@ def test_harvest_tend_authority(gov, keeper, strategist, strategy, rando, chain)
         strategy.tend({"from": rando})
 
     # Only keeper, strategist, or gov can call harvest
+    chain.sleep(1)
     strategy.harvest({"from": keeper})
 
     chain.sleep(1)
@@ -188,6 +189,7 @@ def test_set_metadataURI(gov, strategy, strategist, rando):
 
 
 def test_reduce_debt_ratio(strategy, vault, gov, chain):
+    chain.sleep(1)
     strategy.harvest({"from": gov})
     assert vault.strategies(strategy).dict()["totalDebt"] > 0
     old_debt_ratio = vault.strategies(strategy).dict()["debtRatio"]

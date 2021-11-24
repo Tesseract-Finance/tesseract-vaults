@@ -114,9 +114,6 @@ contract StrategyGenLevAAVE is BaseStrategyInitializable {
         approveMaxSpend(address(want), address(lendingPool));
         approveMaxSpend(address(aToken), address(lendingPool));
 
-        // approve flashloan spend
-        approveMaxSpend(rewardToken, address(lendingPool));
-
         // approve swap router spend
         approveMaxSpend(rewardToken, address(PRIMARY_ROUTER));
         if (address(SECONDARY_ROUTER) != address(0)) {

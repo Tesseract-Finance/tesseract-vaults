@@ -5,7 +5,7 @@
 @author Tesseract Finance
 """
 
-API_VERSION: constant(String[28]) = "0.4.3"
+API_VERSION: constant(String[28]) = "0.4.3b"
 
 from vyper.interfaces import ERC20
 
